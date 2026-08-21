@@ -51,7 +51,8 @@ const std::array<glm::vec3, 4>& FarmScene::futureCowPositions()
     return positions;
 }
 
-void FarmScene::render(const Shader& shader, float gateAngleDegrees, float fanAngleDegrees,
+void FarmScene::render(const Shader& shader, float gateAngleDegrees,
+                       float stallGateAngleDegrees, float fanAngleDegrees,
                        float pointFixtureEmission, float spotlightFixtureEmission) const
 {
     applyMaterial(shader, Materials::grass());
@@ -66,7 +67,7 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees, float fanAn
     drawBarn(shader);
     applyMaterial(shader, Materials::concrete());
     drawFeedingArea(shader);
-    drawIndoorCowStalls(shader);
+    drawIndoorCowStalls(shader, stallGateAngleDegrees);
     applyMaterial(shader, Materials::hay());
     drawHayArea(shader);
     applyMaterial(shader, Materials::metal());
@@ -74,6 +75,7 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees, float fanAn
     applyMaterial(shader, Materials::wood());
     drawTrees(shader);
     drawPoultryShed(shader);
+    drawWorkerHouse(shader);
     applyMaterial(shader, Materials::metal());
     drawShedFans(shader, fanAngleDegrees);
     drawLightFixtures(shader, pointFixtureEmission, spotlightFixtureEmission);
@@ -326,7 +328,7 @@ void FarmScene::drawTrough(const Shader& shader, const glm::vec3& position, floa
     cubes_.drawColored(shader, position + glm::vec3(0.0f, 0.38f, 0.0f), glm::vec3(length - 0.22f, 0.08f, 0.72f), glm::vec3(0.30f, 0.22f, 0.08f));
 }
 
-void FarmScene::drawIndoorCowStalls(const Shader& shader) const
+void FarmScene::drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees) const
 {
     // Two open-front stalls align with the tied cows and can be inspected by
     // walking into the shed from its southern/front opening.
@@ -363,6 +365,25 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader) const
                 static_cast<float>(strip) * 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         }
     }
+
+    applyMaterial(shader, Materials::wood());
+    drawStallGate(shader, glm::vec3(-14.0f, 0.0f, -9.65f), stallGateAngleDegrees);
+    drawStallGate(shader, glm::vec3(-10.0f, 0.0f, -9.65f), stallGateAngleDegrees);
+}
+
+void FarmScene::drawStallGate(const Shader& shader, const glm::vec3& hinge,
+                              float angleDegrees) const
+{
+    glm::mat4 parent(1.0f);
+    parent = glm::translate(parent, hinge);
+    parent = glm::rotate(parent, glm::radians(angleDegrees), glm::vec3(0.0f, 1.0f, 0.0f));
+    for (float x : {0.10f, 3.90f})
+        cubes_.drawTextured(shader, parent, glm::vec3(x, 0.78f, 0.0f),
+                            glm::vec3(0.14f, 1.45f, 0.14f), textures_.wood, WarmWood);
+    for (float y : {0.24f, 0.78f, 1.32f})
+        cubes_.drawTextured(shader, parent, glm::vec3(2.0f, y, 0.0f),
+                            glm::vec3(4.0f, 0.13f, 0.13f), textures_.wood,
+                            WarmWood, glm::vec2(4.0f, 0.5f));
 }
 
 void FarmScene::drawHayArea(const Shader& shader) const
@@ -465,6 +486,37 @@ void FarmScene::drawPoultryShed(const Shader& shader) const
     cubes_.drawTextured(shader, origin + glm::vec3(-0.95f, 0.32f, -0.75f),
                         glm::vec3(0.70f, 0.38f, 0.70f), textures_.hay,
                         glm::vec3(0.64f, 0.82f, 0.32f));
+}
+
+void FarmScene::drawWorkerHouse(const Shader& shader) const
+{
+    const glm::vec3 origin(4.0f, 0.0f, 12.0f);
+    applyMaterial(shader, Materials::brick());
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.10f, 0.0f),
+                        glm::vec3(3.5f, 0.20f, 3.2f), textures_.concrete,
+                        ConcreteTint, glm::vec2(3.0f));
+    cubes_.drawTextured(shader, origin + glm::vec3(-1.60f, 1.35f, 0.0f),
+                        glm::vec3(0.22f, 2.55f, 3.0f), textures_.brick, BrickTint);
+    cubes_.drawTextured(shader, origin + glm::vec3(1.60f, 1.35f, 0.0f),
+                        glm::vec3(0.22f, 2.55f, 3.0f), textures_.brick, BrickTint);
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 1.35f, 1.48f),
+                        glm::vec3(3.0f, 2.55f, 0.22f), textures_.brick, BrickTint);
+    for (float x : {-1.15f, 1.15f})
+        cubes_.drawTextured(shader, origin + glm::vec3(x, 1.35f, -1.48f),
+                            glm::vec3(0.70f, 2.55f, 0.22f), textures_.brick, BrickTint);
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 2.20f, -1.48f),
+                        glm::vec3(1.60f, 0.85f, 0.22f), textures_.brick, BrickTint);
+    applyMaterial(shader, Materials::wood());
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 1.0f, -1.52f),
+                        glm::vec3(1.25f, 1.95f, 0.12f), textures_.wood,
+                        glm::vec3(0.38f, 0.24f, 0.12f));
+    applyMaterial(shader, Materials::metal());
+    cubes_.drawTextured(shader, origin + glm::vec3(-0.78f, 2.85f, 0.0f),
+                        glm::vec3(1.95f, 0.18f, 3.55f), textures_.roof, RoofTint,
+                        glm::vec2(2.0f), 24.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    cubes_.drawTextured(shader, origin + glm::vec3(0.78f, 2.85f, 0.0f),
+                        glm::vec3(1.95f, 0.18f, 3.55f), textures_.roof, RoofTint,
+                        glm::vec2(2.0f), -24.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
 void FarmScene::drawShedFans(const Shader& shader, float fanAngleDegrees) const

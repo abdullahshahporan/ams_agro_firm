@@ -22,37 +22,33 @@ AnimationSystem::AnimationSystem()
           {glm::vec3(0.0f), 0.0f, 0.60f, 1.85f, 0.0f, 0.25f,
            glm::vec3(3.0f, 0.0f, -7.0f), glm::vec2(3.0f, 1.8f), 1.0f,
            glm::vec3(0.78f, 0.48f, 0.24f), glm::vec3(0.96f, 0.84f, 0.64f),
-           glm::vec3(-11.0f, 0.0f, -9.65f)},
+           glm::vec3(-11.0f, 0.0f, -9.65f), Calf::RouteState::Roaming},
           {glm::vec3(0.0f), 0.0f, 0.54f, 2.15f, 0.0f, 3.40f,
            glm::vec3(3.2f, 0.0f, 0.0f), glm::vec2(1.8f, 1.15f), -1.0f,
            glm::vec3(0.86f, 0.84f, 0.76f), glm::vec3(0.12f, 0.10f, 0.08f),
-           glm::vec3(-9.0f, 0.0f, -9.65f)}
+           glm::vec3(-9.0f, 0.0f, -9.65f), Calf::RouteState::Roaming}
       }},
       workers_{{
-          {glm::vec3(7.0f, 0.0f, -5.5f), 0.0f, WorkerState::Walking,
-           1.0f, 0.0f, 0.0f,
-           glm::vec3(7.0f, 0.0f, -5.5f), glm::vec3(-4.5f, 0.0f, -1.8f), true,
-           glm::vec3(0.12f, 0.42f, 0.72f)},
-          {glm::vec3(-10.0f, 0.0f, -4.15f), 90.0f, WorkerState::Working,
-           0.0f, 0.0f, 1.2f,
-           glm::vec3(-10.0f, 0.0f, -4.15f), glm::vec3(-10.0f, 0.0f, -4.15f), false,
-           glm::vec3(0.68f, 0.18f, 0.12f)}
+          {glm::vec3(4.0f, 0.0f, 10.25f), 90.0f, WorkerState::HomeIdle,
+           2.00f, 0.0f, 0.0f,
+           glm::vec3(4.0f, 0.0f, 10.25f), glm::vec3(-10.0f, 0.0f, -4.15f), true,
+           glm::vec3(0.12f, 0.42f, 0.72f)}
       }},
       birds_{{
           {BirdSpecies::Chicken, glm::vec3(0.0f), glm::vec3(9.20f,0.0f,6.70f),
-           glm::vec3(4.0f,0.0f,7.0f), glm::vec2(2.4f,1.5f), 0.2f, 1.0f, 1.20f, 0.48f, 0.0f, 0.0f, true, false, glm::vec3(0.72f,0.24f,0.10f)},
+           glm::vec3(4.0f,0.0f,7.0f), glm::vec2(2.4f,1.5f), 0.2f, 1.0f, 1.20f, 0.48f, 0.0f, 0.0f, true, false, glm::vec3(0.72f,0.24f,0.10f), Calf::RouteState::Roaming},
           {BirdSpecies::Chicken, glm::vec3(0.0f), glm::vec3(9.65f,0.0f,6.75f),
-           glm::vec3(3.5f,0.0f,10.0f), glm::vec2(2.0f,1.2f), 2.8f, -1.0f, 1.05f, 0.44f, 0.0f, 0.5f, true, false, glm::vec3(0.92f,0.78f,0.42f)},
+           glm::vec3(3.5f,0.0f,8.6f), glm::vec2(2.0f,1.0f), 2.8f, -1.0f, 1.05f, 0.44f, 0.0f, 0.5f, true, false, glm::vec3(0.92f,0.78f,0.42f), Calf::RouteState::Roaming},
           {BirdSpecies::Duck, glm::vec3(0.0f), glm::vec3(10.15f,0.0f,6.70f),
-           glm::vec3(7.0f,0.0f,5.5f), glm::vec2(2.1f,1.3f), 1.4f, 1.0f, 0.82f, 0.52f, 0.0f, 1.0f, true, false, glm::vec3(0.88f,0.86f,0.68f)},
+           glm::vec3(6.0f,0.0f,5.5f), glm::vec2(1.6f,1.1f), 1.4f, 1.0f, 0.82f, 0.52f, 0.0f, 1.0f, true, false, glm::vec3(0.88f,0.86f,0.68f), Calf::RouteState::Roaming},
           {BirdSpecies::Duck, glm::vec3(0.0f), glm::vec3(10.60f,0.0f,6.75f),
-           glm::vec3(6.5f,0.0f,9.0f), glm::vec2(1.7f,1.0f), 4.2f, -1.0f, 0.76f, 0.49f, 0.0f, 1.5f, true, false, glm::vec3(0.36f,0.42f,0.30f)},
+           glm::vec3(6.0f,0.0f,8.2f), glm::vec2(1.5f,0.9f), 4.2f, -1.0f, 0.76f, 0.49f, 0.0f, 1.5f, true, false, glm::vec3(0.36f,0.42f,0.30f), Calf::RouteState::Roaming},
           {BirdSpecies::Chicken, glm::vec3(10.35f,0.0f,7.35f), glm::vec3(10.35f,0.0f,7.35f),
-           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.50f, 180.0f, 0.0f, false, false, glm::vec3(0.62f,0.20f,0.08f)},
+           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.50f, 180.0f, 0.0f, false, false, glm::vec3(0.62f,0.20f,0.08f), Calf::RouteState::Sheltered},
           {BirdSpecies::Chicken, glm::vec3(9.95f,0.0f,7.05f), glm::vec3(9.95f,0.0f,7.05f),
-           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.22f, 40.0f, 0.0f, false, true, glm::vec3(0.96f,0.82f,0.20f)},
+           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.22f, 40.0f, 0.0f, false, true, glm::vec3(0.96f,0.82f,0.20f), Calf::RouteState::Sheltered},
           {BirdSpecies::Chicken, glm::vec3(10.28f,0.0f,6.98f), glm::vec3(10.28f,0.0f,6.98f),
-           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.20f, -20.0f, 0.0f, false, true, glm::vec3(0.98f,0.86f,0.24f)}
+           glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.20f, -20.0f, 0.0f, false, true, glm::vec3(0.98f,0.86f,0.24f), Calf::RouteState::Sheltered}
       }}
 {
     for (Calf& calf : calves_)
@@ -84,34 +80,50 @@ void AnimationSystem::update(float deltaTime)
         }
     }
 
-    if (!nightMode_ && calvesOn_)
+    if (!nightMode_)
     {
         for (Calf& calf : calves_)
         {
-            calf.animationTime += deltaTime;
-            updateCalfPath(calf, deltaTime);
+            if (calf.routeState == Calf::RouteState::Roaming && calvesOn_)
+            {
+                calf.animationTime += deltaTime;
+                updateCalfPath(calf, deltaTime);
+            }
+            else if (calf.routeState == Calf::RouteState::GoingToShelter ||
+                     calf.routeState == Calf::RouteState::GoingToField)
+            {
+                calf.animationTime += deltaTime;
+                updateCalfNavigation(calf, deltaTime, shelterRequested_);
+            }
         }
-    }
-
-    if (!nightMode_)
-    {
         for (Bird& bird : birds_)
         {
             if (!bird.mobile)
                 continue;
-            bird.animationTime += deltaTime;
-            updateBirdPath(bird, deltaTime);
+            if (bird.routeState == Calf::RouteState::Roaming)
+            {
+                bird.animationTime += deltaTime;
+                updateBirdPath(bird, deltaTime);
+            }
+            else if (bird.routeState == Calf::RouteState::GoingToShelter ||
+                     bird.routeState == Calf::RouteState::GoingToField)
+            {
+                bird.animationTime += deltaTime;
+                updateBirdNavigation(bird, deltaTime, shelterRequested_);
+            }
         }
     }
 
-    if (workersOn_)
+    for (Worker& worker : workers_)
     {
-        for (Worker& worker : workers_)
+        if (worker.state == WorkerState::WalkingToCows ||
+            worker.state == WorkerState::WalkingHome)
         {
             worker.animationTime += deltaTime;
-            if (worker.state == WorkerState::Walking)
-                updateWorker(worker, deltaTime);
+            updateWorker(worker, deltaTime);
         }
+        else if (worker.state == WorkerState::Feeding)
+            worker.animationTime += deltaTime;
     }
 
     if (fansOn_)
@@ -129,21 +141,80 @@ void AnimationSystem::setNightMode(bool nightMode)
         {
             calf.position = calf.shelterPosition;
             calf.yaw = 90.0f;
+            calf.routeState = Calf::RouteState::Sheltered;
         }
         for (Bird& bird : birds_)
         {
             bird.position = bird.shelterPosition;
             bird.yaw = 180.0f;
+            bird.routeState = Calf::RouteState::Sheltered;
         }
+        sendWorkerHome();
     }
     else
     {
         for (Calf& calf : calves_)
-            updateCalfPath(calf, 0.0f);
+            calf.routeState = shelterRequested_
+                ? Calf::RouteState::Sheltered : Calf::RouteState::GoingToField;
         for (Bird& bird : birds_)
             if (bird.mobile)
-                updateBirdPath(bird, 0.0f);
+                bird.routeState = shelterRequested_
+                    ? Calf::RouteState::Sheltered : Calf::RouteState::GoingToField;
     }
+}
+
+void AnimationSystem::toggleAnimalShelter()
+{
+    if (nightMode_)
+        return;
+    shelterRequested_ = !shelterRequested_;
+    for (Calf& calf : calves_)
+        calf.routeState = shelterRequested_
+            ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
+    for (Bird& bird : birds_)
+        if (bird.mobile)
+            bird.routeState = shelterRequested_
+                ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
+}
+
+void AnimationSystem::commandWorker()
+{
+    Worker& worker = workers_[0];
+    switch (worker.state)
+    {
+    case WorkerState::HomeIdle:
+        worker.state = WorkerState::WalkingToCows;
+        break;
+    case WorkerState::ReadyAtCows:
+        worker.state = WorkerState::Feeding;
+        break;
+    case WorkerState::Feeding:
+        worker.state = WorkerState::WalkingHome;
+        break;
+    case WorkerState::WalkingToCows:
+    case WorkerState::WalkingHome:
+        break;
+    }
+}
+
+void AnimationSystem::sendWorkerHome()
+{
+    Worker& worker = workers_[0];
+    if (worker.state != WorkerState::HomeIdle)
+        worker.state = WorkerState::WalkingHome;
+}
+
+const char* AnimationSystem::workerStatus() const
+{
+    switch (workers_[0].state)
+    {
+    case WorkerState::HomeIdle: return "resting at home";
+    case WorkerState::WalkingToCows: return "walking to the cow shed";
+    case WorkerState::ReadyAtCows: return "ready beside the fodder trough";
+    case WorkerState::Feeding: return "giving food to the cattle";
+    case WorkerState::WalkingHome: return "walking home";
+    }
+    return "unknown";
 }
 
 void AnimationSystem::updateCowPatrol(Cow& cow, float deltaTime)
@@ -184,15 +255,36 @@ void AnimationSystem::updateCalfPath(Calf& calf, float deltaTime)
         calf.yaw = yawForDirection(glm::normalize(tangent));
 }
 
+void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
+                                            bool shelterRequested)
+{
+    if (shelterRequested && calf.routeState != Calf::RouteState::GoingToShelter)
+        calf.routeState = Calf::RouteState::GoingToShelter;
+    if (!shelterRequested && calf.routeState != Calf::RouteState::GoingToField)
+        calf.routeState = Calf::RouteState::GoingToField;
+
+    glm::vec3 target = calf.shelterPosition;
+    if (!shelterRequested)
+        target = calf.pathCenter + glm::vec3(calf.pathRadius.x * std::cos(calf.pathAngle),
+                                             0.0f,
+                                             calf.pathRadius.y * std::sin(calf.pathAngle));
+    if (moveToward(calf.position, calf.yaw, target, calf.speed, deltaTime))
+        calf.routeState = shelterRequested
+            ? Calf::RouteState::Sheltered : Calf::RouteState::Roaming;
+}
+
 void AnimationSystem::updateWorker(Worker& worker, float deltaTime)
 {
-    const glm::vec3 target = worker.targetingB ? worker.pathB : worker.pathA;
+    const bool goingToCows = worker.state == WorkerState::WalkingToCows;
+    const glm::vec3 target = goingToCows ? worker.pathB : worker.pathA;
     const glm::vec3 difference = target - worker.position;
     const float distanceSquared = glm::length2(difference);
     if (distanceSquared < 0.0025f)
     {
         worker.position = target;
-        worker.targetingB = !worker.targetingB;
+        worker.state = goingToCows ? WorkerState::ReadyAtCows : WorkerState::HomeIdle;
+        if (goingToCows)
+            worker.yaw = 90.0f;
         return;
     }
 
@@ -217,6 +309,38 @@ void AnimationSystem::updateBirdPath(Bird& bird, float deltaTime)
                              bird.pathRadius.y * c * bird.direction);
     if (glm::length2(tangent) > 0.000001f)
         bird.yaw = yawForDirection(glm::normalize(tangent));
+}
+
+void AnimationSystem::updateBirdNavigation(Bird& bird, float deltaTime,
+                                           bool shelterRequested)
+{
+    glm::vec3 target = bird.shelterPosition;
+    if (!shelterRequested)
+        target = bird.pathCenter + glm::vec3(bird.pathRadius.x * std::cos(bird.pathAngle),
+                                             0.0f,
+                                             bird.pathRadius.y * std::sin(bird.pathAngle));
+    if (moveToward(bird.position, bird.yaw, target,
+                   std::max(0.72f, bird.speed), deltaTime))
+        bird.routeState = shelterRequested
+            ? Calf::RouteState::Sheltered : Calf::RouteState::Roaming;
+}
+
+bool AnimationSystem::moveToward(glm::vec3& position, float& yaw,
+                                 const glm::vec3& target, float speed,
+                                 float deltaTime)
+{
+    const glm::vec3 difference = target - position;
+    const float distanceSquared = glm::length2(difference);
+    if (distanceSquared < 0.0025f)
+    {
+        position = target;
+        return true;
+    }
+    const float distance = std::sqrt(distanceSquared);
+    const glm::vec3 direction = difference / distance;
+    position += direction * std::min(speed * deltaTime, distance);
+    yaw = yawForDirection(direction);
+    return distance <= speed * deltaTime;
 }
 
 float AnimationSystem::yawForDirection(const glm::vec3& direction)

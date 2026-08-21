@@ -30,11 +30,13 @@ void EntityRenderer::render(const Shader& shader, const AnimationSystem& animati
     {
         applyMaterial(shader, Materials::cow());
         drawCalf(shader, calf);
-        if (animations.nightMode())
+        if (calf.routeState == Calf::RouteState::Sheltered)
             drawCalfTether(shader, calf);
     }
     for (const Worker& worker : animations.workers())
     {
+        if (worker.state == WorkerState::HomeIdle)
+            continue;
         applyMaterial(shader, Materials::cloth());
         drawWorker(shader, worker);
     }
@@ -280,10 +282,13 @@ void EntityRenderer::drawBovineLeg(
 
 void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) const
 {
-    const bool walking = worker.state == WorkerState::Walking;
+    const bool walking = worker.state == WorkerState::WalkingToCows ||
+                         worker.state == WorkerState::WalkingHome;
+    const bool feeding = worker.state == WorkerState::Feeding;
     const float cycle = std::sin((worker.animationTime + worker.phase) * 6.0f);
     const float legSwing = walking ? cycle * 31.0f : 0.0f;
-    const float workSwing = walking ? -legSwing : 30.0f + cycle * 33.0f;
+    const float workSwing = walking ? -legSwing
+                                    : (feeding ? 30.0f + cycle * 33.0f : 0.0f);
     glm::mat4 root = makeRoot(worker.position, worker.yaw, 1.0f);
     if (walking)
         root = glm::translate(root, glm::vec3(0.0f, std::abs(cycle) * 0.035f, 0.0f));
@@ -310,14 +315,16 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
         drawHumanLimb(shader, hip, 0.45f, 0.45f, -side * legSwing * 0.25f,
                       trousers, trousers * 0.78f, 0.18f);
 
-        const float armAngle = (side > 0.0f) ? workSwing : -workSwing * (walking ? 1.0f : 0.35f);
+        const float armAngle = (side > 0.0f) ? workSwing
+                                             : -workSwing * (walking ? 1.0f : 0.35f);
         glm::mat4 shoulder = glm::translate(root, glm::vec3(0.0f, 1.52f, side * 0.38f));
         shoulder = glm::rotate(shoulder, glm::radians(armAngle), glm::vec3(0.0f, 0.0f, 1.0f));
         drawHumanLimb(shader, shoulder, 0.36f, 0.34f,
-                      walking ? 0.0f : -38.0f, worker.shirtColor, skin, 0.14f);
+                      feeding ? -38.0f : 0.0f, worker.shirtColor, skin, 0.14f);
     }
 
-    if (!walking)
+    if (worker.state == WorkerState::WalkingToCows ||
+        worker.state == WorkerState::ReadyAtCows || feeding)
     {
         // A small handled feed bucket makes the working pose easy to read.
         cubes_.drawColored(shader, root, glm::vec3(0.42f, 0.48f, 0.0f),

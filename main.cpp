@@ -17,8 +17,10 @@
 #include "texture_manager.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 namespace
 {
@@ -36,6 +38,8 @@ bool firstMouseEvent = true;
 
 bool gateShouldBeOpen = false;
 float gateAngleDegrees = 0.0f;
+bool stallGatesShouldBeOpen = false;
+float stallGateAngleDegrees = 0.0f;
 bool texturesEnabled = true;
 bool birdEyeMode = false;
 bool fourViewMode = false;
@@ -45,6 +49,21 @@ LightingSystem lightingSystem;
 int framebufferWidth = static_cast<int>(InitialWidth);
 int framebufferHeight = static_cast<int>(InitialHeight);
 
+void updateWindowTitle(GLFWwindow* window)
+{
+    if (window == nullptr)
+        return;
+
+    std::string title = "AMS Agro Farm - ";
+    title += lightingSystem.nightMode() ? "NIGHT" : "DAY";
+    if (lightingSystem.nightMode())
+    {
+        title += lightingSystem.pointLightsEnabled() ? " | Shed lamps ON" : " | Shed lamps OFF";
+        title += lightingSystem.spotlightEnabled() ? " | Gate spotlight ON" : " | Gate spotlight OFF";
+    }
+    glfwSetWindowTitle(window, title.c_str());
+}
+
 void framebufferSizeCallback(GLFWwindow*, int width, int height)
 {
     framebufferWidth = width;
@@ -52,13 +71,20 @@ void framebufferSizeCallback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void keyCallback(GLFWwindow*, int key, int, int action, int)
+void keyCallback(GLFWwindow* window, int key, int, int action, int)
 {
     // GLFW_PRESS fires once per physical press; holding G cannot repeatedly toggle.
     if (key == GLFW_KEY_G && action == GLFW_PRESS)
     {
         gateShouldBeOpen = !gateShouldBeOpen;
         std::cout << "Gate: " << (gateShouldBeOpen ? "opening" : "closing") << '\n';
+    }
+
+    if (key == GLFW_KEY_O && action == GLFW_PRESS)
+    {
+        stallGatesShouldBeOpen = !stallGatesShouldBeOpen;
+        std::cout << "Cattle stall gates: "
+                  << (stallGatesShouldBeOpen ? "opening" : "closing") << '\n';
     }
 
     if (key == GLFW_KEY_T && action == GLFW_PRESS)
@@ -84,8 +110,21 @@ void keyCallback(GLFWwindow*, int key, int, int action, int)
     }
     if (key == GLFW_KEY_M && action == GLFW_PRESS)
     {
-        animationSystem.toggleWorkers();
-        std::cout << "Worker movement: " << (animationSystem.workersOn() ? "ON" : "PAUSED") << '\n';
+        animationSystem.commandWorker();
+        std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+    }
+    if (key == GLFW_KEY_K && action == GLFW_PRESS)
+    {
+        animationSystem.sendWorkerHome();
+        std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+    }
+    if (key == GLFW_KEY_L && action == GLFW_PRESS)
+    {
+        animationSystem.toggleAnimalShelter();
+        std::cout << "Mobile animals: "
+                  << (animationSystem.animalShelterRequested()
+                      ? "returning/staying in shelters" : "released to daytime fields")
+                  << '\n';
     }
     if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
@@ -97,22 +136,29 @@ void keyCallback(GLFWwindow*, int key, int, int action, int)
     {
         lightingSystem.toggleDirectional();
         std::cout << "Directional light: " << (lightingSystem.directionalEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
     }
     if (key == GLFW_KEY_2 && action == GLFW_PRESS)
     {
         lightingSystem.togglePointLights();
         std::cout << "Point lights: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
     }
     if (key == GLFW_KEY_3 && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpotlight();
         std::cout << "Entrance spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
     }
-    if (key == GLFW_KEY_4 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_4 || key == GLFW_KEY_KP_4) && action == GLFW_PRESS)
     {
         lightingSystem.toggleDayNight();
         animationSystem.setNightMode(lightingSystem.nightMode());
-        std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY") << '\n';
+        updateWindowTitle(window);
+        std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY")
+                  << " | Shed lamps: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF")
+                  << " | Gate spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF")
+                  << '\n';
     }
     if (key == GLFW_KEY_5 && action == GLFW_PRESS)
     {
@@ -179,8 +225,21 @@ void tryCameraMovement(CameraMovement movement)
 {
     const glm::vec3 previous = camera.Position;
     camera.processKeyboard(movement, deltaTime);
-    if (!CollisionSystem::canOccupy(camera.Position, gateAngleDegrees))
-        camera.Position = previous;
+    const glm::vec3 requested = camera.Position;
+    camera.Position = previous;
+
+    // Sweep in short steps so a low-frame-rate movement cannot tunnel through
+    // thin gates, fence rails, walls, or stall doors.
+    const float distance = glm::length(requested - previous);
+    const int steps = std::max(1, static_cast<int>(std::ceil(distance / 0.10f)));
+    for (int step = 1; step <= steps; ++step)
+    {
+        const glm::vec3 candidate = glm::mix(previous, requested,
+            static_cast<float>(step) / static_cast<float>(steps));
+        if (!CollisionSystem::canOccupy(candidate, gateAngleDegrees, stallGateAngleDegrees))
+            break;
+        camera.Position = candidate;
+    }
 }
 
 void processInput(GLFWwindow* window)
@@ -215,6 +274,12 @@ void updateAnimations(float frameDeltaTime)
     else if (gateAngleDegrees > targetAngle)
         gateAngleDegrees = std::max(gateAngleDegrees - maximumStep, targetAngle);
 
+    const float stallTarget = stallGatesShouldBeOpen ? 88.0f : 0.0f;
+    if (stallGateAngleDegrees < stallTarget)
+        stallGateAngleDegrees = std::min(stallGateAngleDegrees + maximumStep, stallTarget);
+    else if (stallGateAngleDegrees > stallTarget)
+        stallGateAngleDegrees = std::max(stallGateAngleDegrees - maximumStep, stallTarget);
+
     animationSystem.update(frameDeltaTime);
 }
 
@@ -223,7 +288,8 @@ void renderScene(const Shader& shader, const FarmScene& farmScene,
                  const CurvedRenderer& curvedRenderer,
                  const FarmTextures& textures)
 {
-    farmScene.render(shader, gateAngleDegrees, animationSystem.fanAngle(),
+    farmScene.render(shader, gateAngleDegrees, stallGateAngleDegrees,
+                     animationSystem.fanAngle(),
                      lightingSystem.pointFixtureEmission(),
                      lightingSystem.spotlightFixtureEmission());
     entityRenderer.render(shader, animationSystem);
@@ -266,16 +332,19 @@ void printControls()
         << "B       : Bird's-Eye View\n"
         << "V       : Four-Viewport Mode\n"
         << "G       : Open/Close Farm Gate\n"
+        << "O       : Open/Close Cattle Stall Gates\n"
         << "T       : Toggle Textures\n"
         << "C       : Pause/Resume Adult Cows\n"
         << "R       : Pause/Resume Running Calves\n"
         << "H       : Pause/Resume Cow Head Motion\n"
-        << "M       : Pause/Resume Workers\n"
+        << "M       : Next Worker Task (Go/Feed/Home)\n"
+        << "K       : Send Worker Home\n"
+        << "L       : Recall/Release Mobile Animals\n"
         << "F       : Pause/Resume Shed Fans\n"
         << "1       : Directional Light ON/OFF\n"
         << "2       : Point Lights ON/OFF\n"
         << "3       : Entrance Spotlight ON/OFF\n"
-        << "4       : Day/Night Toggle\n"
+        << "4/KP4   : Day/Night Toggle\n"
         << "5       : Ambient Component ON/OFF\n"
         << "6       : Diffuse Component ON/OFF\n"
         << "7       : Specular Component ON/OFF\n"
@@ -315,6 +384,7 @@ int main()
     }
 
     glfwMakeContextCurrent(window);
+    updateWindowTitle(window);
     glfwSwapInterval(1);
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
     glfwSetKeyCallback(window, keyCallback);

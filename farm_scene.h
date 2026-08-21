@@ -13,7 +13,8 @@ public:
     FarmScene(const CubeRenderer& cubes, const FarmTextures& textures)
         : cubes_(cubes), textures_(textures) {}
 
-    void render(const Shader& shader, float gateAngleDegrees, float fanAngleDegrees,
+    void render(const Shader& shader, float gateAngleDegrees, float stallGateAngleDegrees,
+                float fanAngleDegrees,
                 float pointFixtureEmission, float spotlightFixtureEmission) const;
     static const std::array<glm::vec3, 4>& futureCowPositions();
 
@@ -33,7 +34,9 @@ private:
     void drawBarn(const Shader& shader) const;
     void drawFeedingArea(const Shader& shader) const;
     void drawTrough(const Shader& shader, const glm::vec3& position, float length) const;
-    void drawIndoorCowStalls(const Shader& shader) const;
+    void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees) const;
+    void drawStallGate(const Shader& shader, const glm::vec3& hinge,
+                       float angleDegrees) const;
 
     void drawHayArea(const Shader& shader) const;
     void drawHayBale(const Shader& shader, const glm::vec3& position, float rotation) const;
@@ -41,6 +44,7 @@ private:
     void drawTree(const Shader& shader, const glm::vec3& position, float scale) const;
     void drawWaterFacility(const Shader& shader) const;
     void drawPoultryShed(const Shader& shader) const;
+    void drawWorkerHouse(const Shader& shader) const;
 
     void drawShedFans(const Shader& shader, float fanAngleDegrees) const;
     void drawFan(const Shader& shader, const glm::vec3& position, float parentAngle) const;

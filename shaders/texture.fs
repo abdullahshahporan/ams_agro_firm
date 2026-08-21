@@ -61,6 +61,7 @@ uniform bool spotLightEnabled;
 uniform bool ambientEnabled;
 uniform bool diffuseEnabled;
 uniform bool specularEnabled;
+uniform vec3 sceneAmbient;
 
 vec3 phongTerms(vec3 ambientColor, vec3 diffuseColor, vec3 specularColor,
                 vec3 lightDirection, vec3 normal, vec3 viewDirection,
@@ -116,6 +117,11 @@ void main()
     vec3 normal = normalize(Normal);
     vec3 viewDirection = normalize(viewPos - FragPos);
     vec3 result = vec3(0.0);
+
+    // A small environment term keeps the night readable without making it
+    // look sunlit. It follows the global ambient-component switch.
+    if (ambientEnabled)
+        result += sceneAmbient * albedo;
 
     if (directionalLightEnabled)
         result += calculateDirectional(normal, viewDirection, albedo);
