@@ -2,6 +2,27 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "C/C++: gcc.exe build active file",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\run_project.ps1"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Build and run the complete AMS Agro Farm OpenGL project."
+        },
+        {
             "label": "Build AMS Agro Farm (MinGW)",
             "type": "shell",
             "command": "powershell",
@@ -17,10 +38,7 @@
                 "cwd": "${workspaceFolder}"
             },
             "problemMatcher": ["$gcc"],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
+            "group": "build"
         }
     ]
 }

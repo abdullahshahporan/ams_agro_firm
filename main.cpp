@@ -5,8 +5,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "camera.h"
+#include "animation_system.h"
 #include "cube_renderer.h"
+#include "entity_renderer.h"
 #include "farm_scene.h"
+#include "lighting_system.h"
+#include "primitive_renderer.h"
 #include "shader.h"
 #include "texture_manager.h"
 
@@ -31,6 +35,8 @@ bool firstMouseEvent = true;
 bool gateShouldBeOpen = false;
 float gateAngleDegrees = 0.0f;
 bool texturesEnabled = true;
+AnimationSystem animationSystem;
+LightingSystem lightingSystem;
 
 int framebufferWidth = static_cast<int>(InitialWidth);
 int framebufferHeight = static_cast<int>(InitialHeight);
@@ -55,6 +61,68 @@ void keyCallback(GLFWwindow*, int key, int, int action, int)
     {
         texturesEnabled = !texturesEnabled;
         std::cout << "Textures: " << (texturesEnabled ? "ON" : "OFF") << '\n';
+    }
+
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+        animationSystem.toggleAdultCows();
+        std::cout << "Adult cow movement: " << (animationSystem.adultCowsOn() ? "ON" : "PAUSED") << '\n';
+    }
+    if (key == GLFW_KEY_R && action == GLFW_PRESS)
+    {
+        animationSystem.toggleCalves();
+        std::cout << "Calf running: " << (animationSystem.calvesOn() ? "ON" : "PAUSED") << '\n';
+    }
+    if (key == GLFW_KEY_H && action == GLFW_PRESS)
+    {
+        animationSystem.toggleHeadMotion();
+        std::cout << "Cow head/grazing motion: " << (animationSystem.headMotionOn() ? "ON" : "PAUSED") << '\n';
+    }
+    if (key == GLFW_KEY_M && action == GLFW_PRESS)
+    {
+        animationSystem.toggleWorkers();
+        std::cout << "Worker movement: " << (animationSystem.workersOn() ? "ON" : "PAUSED") << '\n';
+    }
+    if (key == GLFW_KEY_F && action == GLFW_PRESS)
+    {
+        animationSystem.toggleFans();
+        std::cout << "Shed fans: " << (animationSystem.fansOn() ? "ON" : "PAUSED") << '\n';
+    }
+
+    if (key == GLFW_KEY_1 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleDirectional();
+        std::cout << "Directional light: " << (lightingSystem.directionalEnabled() ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_2 && action == GLFW_PRESS)
+    {
+        lightingSystem.togglePointLights();
+        std::cout << "Point lights: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_3 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleSpotlight();
+        std::cout << "Entrance spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_4 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleDayNight();
+        std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY") << '\n';
+    }
+    if (key == GLFW_KEY_5 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleAmbient();
+        std::cout << "Ambient component: " << (lightingSystem.ambientEnabled() ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_6 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleDiffuse();
+        std::cout << "Diffuse component: " << (lightingSystem.diffuseEnabled() ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_7 && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleSpecular();
+        std::cout << "Specular component: " << (lightingSystem.specularEnabled() ? "ON" : "OFF") << '\n';
     }
 }
 
@@ -108,13 +176,24 @@ void updateAnimations(float frameDeltaTime)
         gateAngleDegrees = std::min(gateAngleDegrees + maximumStep, targetAngle);
     else if (gateAngleDegrees > targetAngle)
         gateAngleDegrees = std::max(gateAngleDegrees - maximumStep, targetAngle);
+
+    animationSystem.update(frameDeltaTime);
+}
+
+void renderScene(const Shader& shader, const FarmScene& farmScene,
+                 const EntityRenderer& entityRenderer)
+{
+    farmScene.render(shader, gateAngleDegrees, animationSystem.fanAngle(),
+                     lightingSystem.pointFixtureEmission(),
+                     lightingSystem.spotlightFixtureEmission());
+    entityRenderer.render(shader, animationSystem);
 }
 
 void printControls()
 {
     std::cout
         << "========================================\n"
-        << "AMS AGRO FARM - MODULE 2\n"
+        << "AMS AGRO FARM - MODULE 4\n"
         << "========================================\n"
         << "W/A/S/D : Move Camera\n"
         << "Mouse   : Look Around\n"
@@ -122,9 +201,21 @@ void printControls()
         << "Scroll  : Zoom\n"
         << "G       : Open/Close Farm Gate\n"
         << "T       : Toggle Textures\n"
+        << "C       : Pause/Resume Adult Cows\n"
+        << "R       : Pause/Resume Running Calves\n"
+        << "H       : Pause/Resume Cow Head Motion\n"
+        << "M       : Pause/Resume Workers\n"
+        << "F       : Pause/Resume Shed Fans\n"
+        << "1       : Directional Light ON/OFF\n"
+        << "2       : Point Lights ON/OFF\n"
+        << "3       : Entrance Spotlight ON/OFF\n"
+        << "4       : Day/Night Toggle\n"
+        << "5       : Ambient Component ON/OFF\n"
+        << "6       : Diffuse Component ON/OFF\n"
+        << "7       : Specular Component ON/OFF\n"
         << "ESC     : Exit\n"
         << "========================================\n"
-        << "Detailed Environment + Texture Mapping\n"
+        << "Phong Lighting + Multiple Lights + Day/Night\n"
         << "========================================\n";
 }
 }
@@ -146,7 +237,7 @@ int main()
     GLFWwindow* window = glfwCreateWindow(
         InitialWidth,
         InitialHeight,
-        "Interactive 3D Agro Farm - Module 2",
+        "AMS Agro Farm - Module 4",
         nullptr,
         nullptr);
 
@@ -184,10 +275,12 @@ int main()
         Shader textureShader("shaders/texture.vs", "shaders/texture.fs");
         TextureManager textureManager;
         CubeRenderer cubeRenderer;
+        PrimitiveRenderer primitiveRenderer;
         FarmScene farmScene(cubeRenderer, textureManager.farm());
+        EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
 
         if (textureManager.allFilesLoaded())
-            std::cout << "All Module 2 textures loaded successfully.\n";
+            std::cout << "All farm textures loaded successfully.\n";
 
         lastFrame = static_cast<float>(glfwGetTime());
         while (!glfwWindowShouldClose(window))
@@ -199,7 +292,8 @@ int main()
             processInput(window);
             updateAnimations(deltaTime);
 
-            glClearColor(0.52f, 0.78f, 0.94f, 1.0f);
+            const glm::vec3 skyColor = lightingSystem.clearColor();
+            glClearColor(skyColor.r, skyColor.g, skyColor.b, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             if (framebufferWidth > 0 && framebufferHeight > 0)
@@ -215,7 +309,8 @@ int main()
                 textureShader.use();
                 textureShader.setMat4("projection", projection);
                 textureShader.setMat4("view", view);
-                farmScene.render(textureShader, gateAngleDegrees);
+                lightingSystem.setupShader(textureShader, camera.Position);
+                renderScene(textureShader, farmScene, entityRenderer);
             }
 
             glfwSwapBuffers(window);

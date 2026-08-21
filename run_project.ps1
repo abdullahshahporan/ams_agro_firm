@@ -38,6 +38,10 @@ $compilerArguments = @(
     '-I', $lab4CodeRoot,
     (Join-Path $projectRoot 'main.cpp'),
     (Join-Path $projectRoot 'cube_renderer.cpp'),
+    (Join-Path $projectRoot 'primitive_renderer.cpp'),
+    (Join-Path $projectRoot 'animation_system.cpp'),
+    (Join-Path $projectRoot 'lighting_system.cpp'),
+    (Join-Path $projectRoot 'entity_renderer.cpp'),
     (Join-Path $projectRoot 'farm_scene.cpp'),
     (Join-Path $projectRoot 'texture_manager.cpp'),
     (Join-Path $openGlRoot 'glad.c'),
@@ -60,7 +64,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Build successful: $outputExecutable" -ForegroundColor Green
 
 if (-not $BuildOnly) {
-    Write-Host 'Launching Module 2...' -ForegroundColor Cyan
+    Write-Host 'Launching Module 4...' -ForegroundColor Cyan
     Push-Location $projectRoot
     try {
         & $outputExecutable

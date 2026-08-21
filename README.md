@@ -1,17 +1,21 @@
-# AMS Agro Farm — Module 2
+# AMS Agro Farm — Module 4
 
-Module 2 extends the working Module 1 entrance and camera into a detailed,
-textured cattle-farm environment. It uses Modern OpenGL 3.3, GLFW, GLAD, GLM,
-and the course Lab 4 `stb_image` implementation.
+Module 4 preserves Modules 1–3 and upgrades every static and animated object to
+unified textured Phong lighting. It adds directional sunlight, three attenuated
+point lights, a soft-edged entrance spotlight, emissive fixtures and distinct
+day/night environments. Two cows now occupy tied indoor shed stalls with fresh
+green fodder, ceiling lights and animated fans above them.
 
 ## Build and run
 
 ### VS Code Run button
 
-1. In VS Code, open the `ams_agro_farm` folder itself as the workspace.
+1. In VS Code, open either the `ams_agro_farm` folder or its `Graphics project`
+   parent workspace; configurations for both layouts are included.
 2. Open `main.cpp`.
-3. Click the top-right triangle and choose **Run Code**. Subsequent clicks use
-   the same project build-and-run command.
+3. Click the top-right triangle. Both **Run C/C++ File** and **Run Code** are
+   mapped to the complete project build-and-run command rather than a
+   single-file `gcc main.cpp` build.
 
 The workspace configuration calls `run_project.ps1`, which compiles every
 project source file and then launches the OpenGL application. The project-local
@@ -42,6 +46,18 @@ solution intentionally exposes the compatible `Debug | x64` configuration.
 - Mouse wheel: zoom
 - `G`: smoothly open or close both gate leaves
 - `T`: toggle texture sampling on/off for demonstration
+- `C`: pause/resume adult cow body and walking animation
+- `R`: pause/resume both running calves
+- `H`: pause/resume grazing/feeding head movement
+- `M`: pause/resume farm workers
+- `F`: pause/resume both shed fans
+- `1`: toggle directional sunlight
+- `2`: toggle all three point lights
+- `3`: toggle the entrance spotlight
+- `4`: switch between day and night
+- `5`: toggle the ambient lighting component
+- `6`: toggle the diffuse lighting component
+- `7`: toggle the specular lighting component
 - `Esc`: close the application
 
 ## Texture assets
@@ -61,29 +77,41 @@ All textures are loaded once at startup, use mipmaps and relative paths, and
 fall back to a visible checker if loading fails. `GL_REPEAT`,
 `GL_MIRRORED_REPEAT`, and `GL_CLAMP_TO_EDGE` are all represented.
 
-## Visible Module 2 scene
+## Visible Module 4 scene
 
 - textured 36 x 36 grass farm and aligned dirt road
 - repeated wooden boundary fence
 - brick/concrete entrance pillars, textured animated gate and farm sign
 - detailed open cow shed with floor, walls, posts, beams and sloped roof
-- two feeding troughs, two hierarchical static fans and three lamp fixtures
+- two tied indoor cows, divided stalls, two fodder troughs and visible ropes
+- two independently rotating hierarchical fans and aligned emissive fixtures
 - enclosed feed barn with doorway, windows and sloped roof
 - seven varied hay bales, three crates and three feed sacks
 - eight reusable trees
 - elevated geometric water tank with supports and ladder
+- four adult cows: walking, grazing, feeding and standing poses
+- two calves running smoothly on separate elliptical paths
+- one walking worker and one worker performing a repeated farm task
 - tool rack and an empty milk/curve-object platform for a later module
 
-The grazing center and reserved cow positions remain open. No animals, humans,
-fan animation, advanced lighting, curved surfaces, or multiple views are part
-of Module 2.
+All moving parts use delta time. Model roots control world translation/yaw,
+while legs, heads, tails, arms and fan blades animate around local joint pivots.
+Sphere, cone and cube meshes are generated once with positions, normals and
+UVs. The vertex shader uses an inverse-transpose normal matrix and the fragment
+shader evaluates ambient, diffuse and specular terms per fragment. Curved
+Module 5 objects and multiple views remain intentionally out of scope.
 
 ## Quick test
 
-1. Confirm the console reports that all textures loaded.
+1. Confirm the console reports that all textures loaded and the day scene is sunlit.
 2. Inspect the entrance and press `T` twice to compare textured and tint-only rendering.
 3. Press `G` and verify both leaves open inward around their pillars.
 4. Walk through the gate and inspect texture repetition on grass, road, fences and walls.
-5. Visit the open shed; verify the two troughs, two stationary fans and fixtures.
-6. Visit the barn; verify its real door opening, windows, crates and feed sacks.
-7. Inspect the hay, trees and elevated water facility from several directions.
+5. Press `C`, `R`, `H`, `M`, and `F` separately; confirm only that animation group pauses.
+6. Verify the walking cow/worker reverse smoothly and the calves follow their loops.
+7. Check that cow legs, heads and tails and worker arms/legs stay attached at their pivots.
+8. Visit the shed; verify the fan mounts remain fixed while only the rotors turn.
+9. Enter the shed and verify two tied cows, green fodder, bulbs and fans are visible.
+10. Press `4`; verify the sky darkens and artificial fixtures dominate the night scene.
+11. At night test `1`, `2`, and `3`, then independently test Phong components with `5`, `6`, and `7`.
+12. Inspect the gate, fan and water facility for stronger metal highlights than grass/hay.
