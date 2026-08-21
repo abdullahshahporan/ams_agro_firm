@@ -144,7 +144,7 @@ glm::vec3 LightingSystem::clearColor() const
 float LightingSystem::fixtureEmission(bool enabled) const
 {
     if (!enabled)
-        return 0.02f;
+        return 0.0f;
     return nightMode_ ? 1.65f : 0.24f;
 }
 
@@ -164,6 +164,6 @@ float LightingSystem::fenceFixtureEmission() const
 float LightingSystem::spotlightFixtureEmission() const
 {
     if (!spotlightEnabled_)
-        return 0.02f;
+        return 0.0f;
     return nightMode_ ? 1.85f : 0.18f;
 }

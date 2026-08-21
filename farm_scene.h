@@ -43,7 +43,6 @@ private:
     void drawCowShed(const Shader& shader, float calfShedDoorAngleDegrees) const;
     void drawBarn(const Shader& shader) const;
     void drawCalfShedSideDoor(const Shader& shader, float angleDegrees) const;
-    void drawFeedingArea(const Shader& shader) const;
     void drawTrough(const Shader& shader, const glm::vec3& position, float length) const;
     void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees) const;
     void drawStallGate(const Shader& shader, const glm::vec3& hinge,

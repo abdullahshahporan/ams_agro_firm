@@ -73,18 +73,18 @@ void AnimationSystem::update(float deltaTime)
     if (!nightMode_ && headMotionOn_)
     {
         for (Cow& cow : cows_)
-        {
-            // H controls only the cows assigned to grazing/feeding behavior.
-            if (cow.state == CowState::Grazing || cow.state == CowState::Feeding)
-                cow.headAnimationTime += deltaTime;
-        }
+            cow.headAnimationTime += deltaTime;
     }
 
     if (!nightMode_)
     {
         for (Calf& calf : calves_)
         {
-            if (calf.routeState == Calf::RouteState::Roaming && calvesOn_)
+            // R is a true calf-movement pause, including commanded navigation
+            // and feeding motion rather than only the free-roaming loop.
+            if (!calvesOn_)
+                continue;
+            if (calf.routeState == Calf::RouteState::Roaming)
             {
                 calf.animationTime += deltaTime;
                 updateCalfPath(calf, deltaTime);
@@ -238,6 +238,9 @@ const char* AnimationSystem::calfStatus() const
 
 void AnimationSystem::commandWorker()
 {
+    if (nightMode_)
+        return;
+
     Worker& worker = workers_[0];
     switch (worker.state)
     {

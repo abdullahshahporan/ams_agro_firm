@@ -20,7 +20,6 @@ public:
 
         struct Box { float minX, maxX, minZ, maxZ, height; };
         const std::array<Box, 29> obstacles = {{
-            {-14.3f,-5.7f,-11.8f,-11.0f,4.8f}, // shed back wall
             {-14.3f,-13.45f,-11.8f,-5.0f,4.2f},
             { -6.55f,-5.7f,-11.8f,-10.22f,4.2f}, // ox-side wall behind calf door
             { -6.55f,-5.7f, -8.98f, -5.0f,4.2f}, // ox-side wall ahead of door
@@ -46,6 +45,7 @@ public:
             {  6.2f,  9.8f,13.25f,13.7f,3.5f},
             {  6.2f,  7.3f,10.2f,10.7f,3.5f},
             {  8.7f,  9.8f,10.2f,10.7f,3.5f},
+            {  7.3f,  8.7f,10.2f,10.7f,2.2f},  // closed worker-house door
             {  6.4f, 10.2f,-2.4f, 0.4f,2.2f},   // milk collection platform
             {-14.3f,-13.8f,10.4f,11.0f,4.3f},   // billboard supports
             { -6.2f, -5.7f,10.4f,11.0f,4.3f}
@@ -72,11 +72,11 @@ public:
         // The perimeter is a thin collision plane with only the entrance gap.
         if (position.y < 5.3f)
         {
-            if ((std::abs(position.x - 17.5f) < radius ||
-                 std::abs(position.x + 17.5f) < radius) &&
-                position.z > -17.8f && position.z < 15.8f)
+            if ((std::abs(position.x - 18.0f) < radius ||
+                 std::abs(position.x + 18.0f) < radius) &&
+                position.z > -18.0f && position.z < 15.8f)
                 return false;
-            if (std::abs(position.z + 17.5f) < radius && std::abs(position.x) < 17.8f)
+            if (std::abs(position.z + 18.0f) < radius && std::abs(position.x) < 18.0f)
                 return false;
             if (std::abs(position.z - 15.5f) < radius && std::abs(position.x) >= 3.72f)
                 return false;
@@ -123,7 +123,7 @@ public:
             const glm::vec2 point(position.x, position.z);
             for (float hingeX : {-14.0f, -10.0f})
             {
-                const glm::vec2 start(hingeX, -9.65f);
+                const glm::vec2 start(hingeX, -11.05f);
                 const glm::vec2 end = start + glm::vec2(std::cos(angle) * 4.0f,
                                                         -std::sin(angle) * 4.0f);
                 if (distanceToSegment(point, start, end) < radius + 0.08f)

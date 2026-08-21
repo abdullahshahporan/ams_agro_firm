@@ -80,8 +80,6 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees,
     applyMaterial(shader, Materials::brick());
     drawCowShed(shader, calfShedDoorAngleDegrees);
     drawBarn(shader);
-    applyMaterial(shader, Materials::concrete());
-    drawFeedingArea(shader);
     drawIndoorCowStalls(shader, stallGateAngleDegrees);
     applyMaterial(shader, Materials::hay());
     drawHayArea(shader);
@@ -303,7 +301,7 @@ void FarmScene::drawBillboard(const Shader& shader) const
     drawCurvedBlockText(shader, "AMS AGRO FARM",
                         center + glm::vec3(0.0f, 0.62f, 0.0f), 1.20f,
                         halfWidth, curveDepth, 0.65f);
-    drawCurvedBlockText(shader, "OWNSER: MD. SHAHPORAN",
+    drawCurvedBlockText(shader, "OWNER: MD. SHAHPORAN",
                         center + glm::vec3(0.0f, -0.58f, 0.0f), 0.72f,
                         halfWidth, curveDepth, 0.65f);
 }
@@ -393,7 +391,8 @@ void FarmScene::drawCowShed(const Shader& shader, float calfShedDoorAngleDegrees
     const glm::vec3 origin(-10.0f, 0.0f, -8.0f);
 
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.09f, 0.0f), glm::vec3(8.2f, 0.18f, 7.0f), textures_.concrete, ConcreteTint, glm::vec2(5.0f, 4.0f));
-    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 1.55f, -3.18f), glm::vec3(7.5f, 3.0f, 0.24f), textures_.brick, BrickTint, glm::vec2(5.0f, 2.5f));
+    // The rear remains gate-enclosed instead of being sealed by a brick wall,
+    // allowing O to create a genuine visitor route behind both adult cattle.
     cubes_.drawTextured(shader, origin + glm::vec3(-3.78f, 1.0f, -1.7f), glm::vec3(0.24f, 1.8f, 2.8f), textures_.brick, BrickTint, glm::vec2(2.0f, 2.0f));
     // Split the ox-side wall around a real calf doorway instead of allowing
     // calves to pass through the concrete feed boxes at the shed front.
@@ -457,7 +456,6 @@ void FarmScene::drawBarn(const Shader& shader) const
     cubes_.drawTextured(shader, origin + glm::vec3(2.25f, 2.1f, 3.0f), glm::vec3(1.8f, 4.0f, 0.32f), textures_.brick, BrickTint, glm::vec2(2.0f, 3.0f));
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 3.50f, 3.0f), glm::vec3(2.7f, 1.2f, 0.32f), textures_.brick, BrickTint, glm::vec2(3.0f, 1.0f));
 
-    cubes_.drawColored(shader, origin + glm::vec3(0.0f, 1.45f, 3.18f), glm::vec3(2.35f, 2.70f, 0.08f), glm::vec3(0.075f, 0.055f, 0.035f));
     for (const float x : {-1.28f, 1.28f})
         cubes_.drawTextured(shader, origin + glm::vec3(x, 1.50f, 3.25f), glm::vec3(0.16f, 3.0f, 0.14f), textures_.wood, WarmWood);
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 2.95f, 3.25f), glm::vec3(2.72f, 0.16f, 0.14f), textures_.wood, WarmWood);
@@ -473,12 +471,6 @@ void FarmScene::drawBarn(const Shader& shader) const
     }
 }
 
-void FarmScene::drawFeedingArea(const Shader& shader) const
-{
-    drawTrough(shader, glm::vec3(-11.8f, 0.0f, -3.75f), 3.0f);
-    drawTrough(shader, glm::vec3(-8.2f, 0.0f, -3.75f), 3.0f);
-}
-
 void FarmScene::drawTrough(const Shader& shader, const glm::vec3& position, float length) const
 {
     cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.18f, 0.0f), glm::vec3(length, 0.18f, 0.90f), textures_.concrete, ConcreteTint, glm::vec2(3.0f, 1.0f));
@@ -491,8 +483,8 @@ void FarmScene::drawTrough(const Shader& shader, const glm::vec3& position, floa
 
 void FarmScene::drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees) const
 {
-    // Two open-front stalls align with the tied cows and can be inspected by
-    // walking into the shed from its southern/front opening.
+    // Two stalls align with the tied cows. The front remains accessible for
+    // feeding, while O opens the rear gates for inspection behind the cattle.
     applyMaterial(shader, Materials::wood());
     for (const float x : {-14.0f, -10.0f, -6.0f})
     {
@@ -544,8 +536,8 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader, float stallGateAngleDe
     }
 
     applyMaterial(shader, Materials::wood());
-    drawStallGate(shader, glm::vec3(-14.0f, 0.0f, -9.65f), stallGateAngleDegrees);
-    drawStallGate(shader, glm::vec3(-10.0f, 0.0f, -9.65f), stallGateAngleDegrees);
+    drawStallGate(shader, glm::vec3(-14.0f, 0.0f, -11.05f), stallGateAngleDegrees);
+    drawStallGate(shader, glm::vec3(-10.0f, 0.0f, -11.05f), stallGateAngleDegrees);
 }
 
 void FarmScene::drawStallGate(const Shader& shader, const glm::vec3& hinge,

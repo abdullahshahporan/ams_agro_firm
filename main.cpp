@@ -44,27 +44,38 @@ float calfShedDoorAngleDegrees = 0.0f;
 bool texturesEnabled = true;
 bool birdEyeMode = false;
 bool fourViewMode = false;
+bool mouseCaptured = true;
 AnimationSystem animationSystem;
 LightingSystem lightingSystem;
 
 int framebufferWidth = static_cast<int>(InitialWidth);
 int framebufferHeight = static_cast<int>(InitialHeight);
 
+void printControls();
+
+const char* onOff(bool enabled)
+{
+    return enabled ? "ON" : "OFF";
+}
+
 void updateWindowTitle(GLFWwindow* window)
 {
     if (window == nullptr)
         return;
 
-    std::string title = "AMS Agro Farm - ";
+    std::string title = "AMS Agro Farm | ";
     title += lightingSystem.nightMode() ? "NIGHT" : "DAY";
-    if (lightingSystem.nightMode())
-    {
-        title += lightingSystem.shedLightsEnabled() ? " | Shed ON" : " | Shed OFF";
-        title += lightingSystem.fenceLightsEnabled() ? " | Fence ON" : " | Fence OFF";
-        title += lightingSystem.bannerLightEnabled() ? " | Banner ON" : " | Banner OFF";
-        title += lightingSystem.billboardLightEnabled() ? " | Billboard ON" : " | Billboard OFF";
-        title += lightingSystem.spotlightEnabled() ? " | Spot ON" : " | Spot OFF";
-    }
+    title += fourViewMode ? " | FOUR VIEW" : (birdEyeMode ? " | BIRD'S-EYE" : " | FREE VIEW");
+    title += " | Shed ";
+    title += onOff(lightingSystem.shedLightsEnabled());
+    title += " | Fence ";
+    title += onOff(lightingSystem.fenceLightsEnabled());
+    title += " | Banner ";
+    title += onOff(lightingSystem.bannerLightEnabled());
+    title += " | Billboard ";
+    title += onOff(lightingSystem.billboardLightEnabled());
+    title += " | Spot ";
+    title += onOff(lightingSystem.spotlightEnabled());
     glfwSetWindowTitle(window, title.c_str());
 }
 
@@ -105,7 +116,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
         animationSystem.toggleCalves();
-        std::cout << "Calf running: " << (animationSystem.calvesOn() ? "ON" : "PAUSED") << '\n';
+        std::cout << "Calf motion: " << (animationSystem.calvesOn() ? "ON" : "PAUSED") << '\n';
     }
     if (key == GLFW_KEY_H && action == GLFW_PRESS)
     {
@@ -114,8 +125,13 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     }
     if (key == GLFW_KEY_M && action == GLFW_PRESS)
     {
-        animationSystem.commandWorker();
-        std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+        if (lightingSystem.nightMode())
+            std::cout << "Worker: night routine active; only the Home command is available.\n";
+        else
+        {
+            animationSystem.commandWorker();
+            std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+        }
     }
     if (key == GLFW_KEY_K && action == GLFW_PRESS)
     {
@@ -124,21 +140,36 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     }
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
     {
-        animationSystem.toggleAnimalShelter();
-        std::cout << "Mobile animals: "
-                  << (animationSystem.animalShelterRequested()
-                      ? "returning/staying in shelters" : "released to daytime fields")
-                  << '\n';
+        if (lightingSystem.nightMode())
+            std::cout << "Mobile animals: night routine keeps every animal sheltered.\n";
+        else
+        {
+            animationSystem.toggleAnimalShelter();
+            std::cout << "Mobile animals: "
+                      << (animationSystem.animalShelterRequested()
+                          ? "returning/staying in shelters" : "released to daytime fields")
+                      << '\n';
+        }
     }
     if (key == GLFW_KEY_J && action == GLFW_PRESS)
     {
-        animationSystem.toggleCalfShed();
-        std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+        if (lightingSystem.nightMode())
+            std::cout << "Calves: release is unavailable during the night routine.\n";
+        else
+        {
+            animationSystem.toggleCalfShed();
+            std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+        }
     }
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
     {
-        animationSystem.sendCalvesToFeed();
-        std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+        if (lightingSystem.nightMode())
+            std::cout << "Calves: feeding command is unavailable during the night routine.\n";
+        else
+        {
+            animationSystem.sendCalvesToFeed();
+            std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+        }
     }
     if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
@@ -227,6 +258,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
             fourViewMode = false;
         firstMouseEvent = true;
         std::cout << "Bird's-eye view: " << (birdEyeMode ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
     }
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
     {
@@ -235,12 +267,28 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
             birdEyeMode = false;
         firstMouseEvent = true;
         std::cout << "Four-view mode: " << (fourViewMode ? "ON" : "OFF") << '\n';
+        if (fourViewMode)
+            std::cout << "Four-view layout: top-left Free | top-right Top | "
+                         "bottom-left Front | bottom-right Side\n";
+        updateWindowTitle(window);
+    }
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS)
+    {
+        mouseCaptured = !mouseCaptured;
+        glfwSetInputMode(window, GLFW_CURSOR,
+                         mouseCaptured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        firstMouseEvent = true;
+        std::cout << "Mouse capture: " << (mouseCaptured ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+    {
+        printControls();
     }
 }
 
 void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 {
-    if (birdEyeMode || fourViewMode)
+    if (!mouseCaptured || birdEyeMode || fourViewMode)
     {
         firstMouseEvent = true;
         return;
@@ -262,7 +310,7 @@ void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 
 void scrollCallback(GLFWwindow*, double, double yOffset)
 {
-    if (!birdEyeMode && !fourViewMode)
+    if (mouseCaptured && !birdEyeMode && !fourViewMode)
         camera.processMouseScroll(static_cast<float>(yOffset));
 }
 
@@ -311,32 +359,47 @@ void processInput(GLFWwindow* window)
         tryCameraMovement(CameraMovement::Up);
 }
 
+float moveTowardAngle(float current, float target, float maximumStep)
+{
+    if (current < target)
+        return std::min(current + maximumStep, target);
+    if (current > target)
+        return std::max(current - maximumStep, target);
+    return current;
+}
+
 void updateAnimations(float frameDeltaTime)
 {
     const float targetAngle = gateShouldBeOpen ? 90.0f : 0.0f;
     const float maximumStep = GateSpeedDegreesPerSecond * frameDeltaTime;
+    const float gateCandidate = moveTowardAngle(gateAngleDegrees, targetAngle,
+                                                 maximumStep);
+    if (CollisionSystem::canOccupy(camera.Position, gateCandidate,
+                                   stallGateAngleDegrees,
+                                   calfShedDoorAngleDegrees))
+        gateAngleDegrees = gateCandidate;
 
-    if (gateAngleDegrees < targetAngle)
-        gateAngleDegrees = std::min(gateAngleDegrees + maximumStep, targetAngle);
-    else if (gateAngleDegrees > targetAngle)
-        gateAngleDegrees = std::max(gateAngleDegrees - maximumStep, targetAngle);
-
-    const float stallTarget = stallGatesShouldBeOpen ? 88.0f : 0.0f;
-    if (stallGateAngleDegrees < stallTarget)
-        stallGateAngleDegrees = std::min(stallGateAngleDegrees + maximumStep, stallTarget);
-    else if (stallGateAngleDegrees > stallTarget)
-        stallGateAngleDegrees = std::max(stallGateAngleDegrees - maximumStep, stallTarget);
+    // Rear stall leaves swing forward along the stall dividers. A positive
+    // angle sent them through the shed's brick back wall.
+    const float stallTarget = stallGatesShouldBeOpen ? -88.0f : 0.0f;
+    const float stallCandidate = moveTowardAngle(stallGateAngleDegrees,
+                                                 stallTarget, maximumStep);
+    if (CollisionSystem::canOccupy(camera.Position, gateAngleDegrees,
+                                   stallCandidate,
+                                   calfShedDoorAngleDegrees))
+        stallGateAngleDegrees = stallCandidate;
 
     animationSystem.update(frameDeltaTime);
 
     const float calfDoorTarget = animationSystem.calfShedDoorNeeded() ? 92.0f : 0.0f;
     const float calfDoorStep = 180.0f * frameDeltaTime;
-    if (calfShedDoorAngleDegrees < calfDoorTarget)
-        calfShedDoorAngleDegrees = std::min(calfShedDoorAngleDegrees + calfDoorStep,
-                                            calfDoorTarget);
-    else if (calfShedDoorAngleDegrees > calfDoorTarget)
-        calfShedDoorAngleDegrees = std::max(calfShedDoorAngleDegrees - calfDoorStep,
-                                            calfDoorTarget);
+    const float calfDoorCandidate = moveTowardAngle(calfShedDoorAngleDegrees,
+                                                     calfDoorTarget,
+                                                     calfDoorStep);
+    if (CollisionSystem::canOccupy(camera.Position, gateAngleDegrees,
+                                   stallGateAngleDegrees,
+                                   calfDoorCandidate))
+        calfShedDoorAngleDegrees = calfDoorCandidate;
 }
 
 void renderScene(const Shader& shader, const FarmScene& farmScene,
@@ -377,14 +440,31 @@ void renderOneView(
     renderScene(shader, farmScene, entityRenderer, curvedRenderer, textures);
 }
 
+void drawFourViewSeparators(int width, int height, int verticalSplit,
+                            int horizontalSplit)
+{
+    constexpr int thickness = 3;
+    glEnable(GL_SCISSOR_TEST);
+    glClearColor(0.78f, 0.57f, 0.20f, 1.0f);
+    glScissor(std::max(0, verticalSplit - thickness / 2), 0,
+              thickness, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glScissor(0, std::max(0, horizontalSplit - thickness / 2),
+              width, thickness);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_SCISSOR_TEST);
+}
+
 void printControls()
 {
     std::cout
         << "========================================\n"
-        << "AMS AGRO FARM - FINAL MODULE 5\n"
+        << "AMS AGRO FARM - INTEGRATED SYSTEM\n"
         << "========================================\n"
         << "W/A/S/D : Move Camera\n"
         << "Mouse   : Look Around\n"
+        << "Tab     : Capture/Release Mouse\n"
+        << "F1      : Print Controls Again\n"
         << "Q/E     : Move Down/Up\n"
         << "Scroll  : Zoom\n"
         << "B       : Bird's-Eye View\n"
@@ -393,7 +473,7 @@ void printControls()
         << "O       : Open/Close Cattle Stall Gates\n"
         << "T       : Toggle Textures\n"
         << "C       : Pause/Resume Adult Cows\n"
-        << "R       : Pause/Resume Running Calves\n"
+        << "R       : Pause/Resume All Calf Motion\n"
         << "H       : Pause/Resume Cow Head Motion\n"
         << "M       : Next Worker Task (Go/Feed/Home)\n"
         << "K       : Send Worker Home\n"
@@ -436,7 +516,7 @@ int main()
     GLFWwindow* window = glfwCreateWindow(
         InitialWidth,
         InitialHeight,
-        "AMS Agro Farm - Final Module 5",
+        "AMS Agro Farm",
         nullptr,
         nullptr);
 
@@ -543,6 +623,9 @@ int main()
                                   textureManager.farm(), leftWidth, 0, rightWidth, bottomHeight,
                                   glm::lookAt(sideEye, glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
                                   technicalProjection(sideAspect, 12.5f), sideEye);
+
+                    drawFourViewSeparators(framebufferWidth, framebufferHeight,
+                                           leftWidth, bottomHeight);
                 }
                 else if (birdEyeMode)
                 {

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title description">
+  <title id="title">AMS Agro Farm project demo</title>
+  <desc id="description">A stylized farm landscape and play button linking to the complete OpenGL project walkthrough.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#071a2b"/>
+      <stop offset="0.58" stop-color="#164c57"/>
+      <stop offset="1" stop-color="#1f6a50"/>
+    </linearGradient>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#245b31"/>
+      <stop offset="1" stop-color="#4c7f35"/>
+    </linearGradient>
+    <linearGradient id="button" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd66b"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" rx="24" fill="url(#sky)"/>
+  <circle cx="1040" cy="105" r="54" fill="#ffe49a" opacity="0.95"/>
+  <circle cx="1020" cy="90" r="54" fill="#0b2737"/>
+
+  <path d="M0 398 C230 322 392 385 590 342 C790 300 1000 330 1200 280 L1200 630 L0 630 Z" fill="url(#field)"/>
+  <path d="M0 472 C255 415 495 468 722 410 C918 361 1070 390 1200 366 L1200 630 L0 630 Z" fill="#173f2a" opacity="0.82"/>
+
+  <g transform="translate(840 288)" filter="url(#shadow)">
+    <rect x="0" y="78" width="240" height="150" rx="4" fill="#9f3d28"/>
+    <path d="M-24 86 L120 0 L264 86 Z" fill="#282d31"/>
+    <rect x="94" y="132" width="58" height="96" fill="#422b20"/>
+    <rect x="28" y="118" width="45" height="43" fill="#8bc2d5"/>
+    <rect x="176" y="118" width="40" height="43" fill="#8bc2d5"/>
+  </g>
+
+  <g stroke="#b77a43" stroke-width="12" stroke-linecap="round" opacity="0.9">
+    <path d="M750 486 H1165"/>
+    <path d="M750 535 H1165"/>
+    <path d="M790 450 V568 M910 438 V568 M1030 432 V568 M1150 420 V568"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif" fill="#fff">
+    <text x="72" y="118" font-size="28" font-weight="600" letter-spacing="5" fill="#ffd66b">OPENGL 3.3 • C++17</text>
+    <text x="68" y="215" font-size="76" font-weight="800">AMS AGRO FARM</text>
+    <text x="72" y="268" font-size="30" fill="#d7eee4">Interactive 3D farm visualization and simulation</text>
+  </g>
+
+  <g transform="translate(430 390)" filter="url(#shadow)">
+    <circle cx="0" cy="0" r="78" fill="url(#button)"/>
+    <circle cx="0" cy="0" r="70" fill="none" stroke="#fff" stroke-width="3" opacity="0.7"/>
+    <path d="M-20 -38 L45 0 L-20 38 Z" fill="#102b32"/>
+  </g>
+
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <text x="72" y="548" font-size="25" font-weight="700" fill="#ffe49a" letter-spacing="2">CLICK TO WATCH THE COMPLETE WALKTHROUGH</text>
+    <text x="72" y="587" font-size="22" fill="#c8ded4">02:04  •  4K  •  60 FPS</text>
+  </g>
+
+  <rect x="2" y="2" width="1196" height="626" rx="22" fill="none" stroke="#fff" stroke-opacity="0.12" stroke-width="4"/>
+</svg>

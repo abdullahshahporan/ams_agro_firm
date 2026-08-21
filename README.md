@@ -20,12 +20,12 @@ lighting systems, day/night behavior, and multiple technical camera views.
 
 <div align="center">
   <a href="https://drive.google.com/file/d/1EMApkfHGZpR_ZDTFk81WqK6BsHAgqDNJ/view?usp=sharing">
-    <img src="docs/demo-preview.gif" alt="Animated preview of the AMS Agro Farm walkthrough" width="900">
+    <img src="docs/demo-cover.svg" alt="AMS Agro Farm video walkthrough" width="900">
   </a>
   <br>
   <strong><a href="https://drive.google.com/file/d/1EMApkfHGZpR_ZDTFk81WqK6BsHAgqDNJ/view?usp=sharing">▶ Watch the complete project </a></strong>
   <br>
-  
+  <sub>Full project video hosted on Google Drive</sub>
 </div>
 
 ## Overview
@@ -114,6 +114,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run_project.ps1 -BuildOnly
 |---|---|
 | `W` `A` `S` `D` | Move forward, left, backward and right |
 | Mouse | Look around |
+| `Tab` | Release or recapture the mouse cursor |
+| `F1` | Print the complete control reference in the terminal |
 | `Q` / `E` | Move down / up |
 | Mouse wheel | Zoom |
 | `B` | Toggle bird's-eye view |
@@ -138,7 +140,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run_project.ps1 -BuildOnly
 | Input | Action |
 |---|---|
 | `C` | Pause or resume adult-cattle animation |
-| `R` | Pause or resume calf movement |
+| `R` | Pause or resume all calf movement, including commanded routes |
 | `H` | Pause or resume cattle head movement |
 
 ### Lighting
@@ -163,13 +165,16 @@ Number-row and numpad keys are both supported.
 ## System Behavior
 
 - The two adult cattle remain tied in separate indoor stalls with fodder in front.
+- `O` opens real rear inspection routes; moving gates pause if the viewer blocks them.
 - Calves use the dedicated door beside the ox and never cross the front troughs.
 - `J` controls field release/return; `N` sends calves to separate indoor fodder mats.
 - The worker remains idle until commanded and can feed the cattle or return home.
 - During daytime, released calves and poultry move through the open farm areas.
-- At night, mobile animals return to their shelters and stop roaming.
+- At night, mobile animals return to their shelters, calves are tied, and work/release
+  commands are locked until daytime; the worker can still be sent home with `K`.
 - Independent light states remain controllable in both day and night modes.
-- Gate, wall and obstacle collision states remain synchronized with animation.
+- The window title always reports the active view, time of day and fixture states.
+- Gate, door, fence, wall and obstacle collision states remain synchronized with animation.
 
 ## Source Architecture
 
@@ -194,7 +199,7 @@ Number-row and numpad keys are both supported.
 
 - **Project:** AMS Agro Farm
 - **Farm owner displayed in scene:** Md. Shahporan
-- **Course:** CSE 4208 — Computer Graphics
+- **Course:** CSE 4102 — Computer Graphics and Image Processing Laboratory
 - **Language:** C++17
 - **Graphics API:** OpenGL 3.3 Core Profile
 

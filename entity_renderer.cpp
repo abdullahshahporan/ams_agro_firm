@@ -30,6 +30,9 @@ void EntityRenderer::render(const Shader& shader, const AnimationSystem& animati
     {
         applyMaterial(shader, Materials::cow());
         drawCalf(shader, calf);
+        if (animations.nightMode() &&
+            calf.routeState == Calf::RouteState::Sheltered)
+            drawCalfTether(shader, calf);
     }
     for (const Worker& worker : animations.workers())
     {
@@ -92,12 +95,33 @@ void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
 
 void EntityRenderer::drawCalfTether(const Shader& shader, const Calf& calf) const
 {
-    const glm::vec3 collar(calf.position.x, 0.72f, calf.position.z - 0.58f);
-    const glm::vec3 anchor(calf.position.x, 0.72f, -10.92f);
-    const float length = std::abs(anchor.z - collar.z);
+    const glm::mat4 calfRoot = makeRoot(calf.position, calf.yaw, calf.scale);
+    const glm::vec3 collar = glm::vec3(
+        calfRoot * glm::vec4(1.0f, 1.18f, 0.0f, 1.0f));
+    const glm::vec3 anchor(-6.34f, 0.72f, calf.shelterPosition.z);
+    const glm::vec3 difference = anchor - collar;
+    const float length = glm::length(difference);
+    if (length < 0.001f)
+        return;
+
+    const glm::vec3 direction = difference / length;
+    const glm::vec3 up(0.0f, 1.0f, 0.0f);
+    const float cosine = glm::clamp(glm::dot(up, direction), -1.0f, 1.0f);
+    glm::mat4 rope(1.0f);
+    rope = glm::translate(rope, (collar + anchor) * 0.5f);
+    const glm::vec3 axis = glm::cross(up, direction);
+    if (glm::length(axis) > 0.0001f)
+        rope = glm::rotate(rope, std::acos(cosine), glm::normalize(axis));
+    else if (cosine < 0.0f)
+        rope = glm::rotate(rope, glm::radians(180.0f),
+                           glm::vec3(1.0f, 0.0f, 0.0f));
+
     applyMaterial(shader, Materials::wood());
-    cubes_.drawColored(shader, (collar + anchor) * 0.5f,
-                       glm::vec3(0.045f, 0.045f, length),
+    cubes_.drawColored(shader, collar, glm::vec3(0.22f, 0.09f, 0.25f),
+                       glm::vec3(0.38f, 0.12f, 0.06f), calf.yaw,
+                       glm::vec3(0.0f, 1.0f, 0.0f));
+    cubes_.drawColored(shader, rope, glm::vec3(0.0f),
+                       glm::vec3(0.045f, length, 0.045f),
                        glm::vec3(0.48f, 0.30f, 0.12f));
     cubes_.drawColored(shader, anchor, glm::vec3(0.12f),
                        glm::vec3(0.34f, 0.20f, 0.08f));
@@ -106,7 +130,9 @@ void EntityRenderer::drawCalfTether(const Shader& shader, const Calf& calf) cons
 void EntityRenderer::drawBird(const Shader& shader, const Bird& bird) const
 {
     glm::mat4 root = makeRoot(bird.position, bird.yaw, bird.scale);
-    const float cycle = bird.mobile ? std::sin(bird.animationTime * 9.0f) : 0.0f;
+    const bool moving = bird.mobile &&
+                        bird.routeState != Calf::RouteState::Sheltered;
+    const float cycle = moving ? std::sin(bird.animationTime * 9.0f) : 0.0f;
     const bool seatedHen = !bird.mobile && !bird.juvenile;
     const float bodyY = seatedHen ? 0.30f : 0.46f;
     const glm::vec3 orange(0.92f, 0.48f, 0.08f);
