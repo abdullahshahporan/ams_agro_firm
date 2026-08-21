@@ -40,6 +40,7 @@ private:
     void drawTrees(const Shader& shader) const;
     void drawTree(const Shader& shader, const glm::vec3& position, float scale) const;
     void drawWaterFacility(const Shader& shader) const;
+    void drawPoultryShed(const Shader& shader) const;
 
     void drawShedFans(const Shader& shader, float fanAngleDegrees) const;
     void drawFan(const Shader& shader, const glm::vec3& position, float parentAngle) const;

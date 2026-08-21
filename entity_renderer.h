@@ -17,11 +17,13 @@ private:
     void drawCow(const Shader& shader, const Cow& cow) const;
     void drawTether(const Shader& shader, const Cow& cow) const;
     void drawCalf(const Shader& shader, const Calf& calf) const;
+    void drawCalfTether(const Shader& shader, const Calf& calf) const;
+    void drawBird(const Shader& shader, const Bird& bird) const;
     void drawBovine(const Shader& shader, const glm::mat4& root,
                     const glm::vec3& bodyColor, const glm::vec3& patchColor,
                     float gaitAngle, float headDrop, float headTurn,
                     float tailAngle, float bodyBob, float hornScale,
-                    bool juvenile) const;
+                    bool juvenile, bool showUdder, bool ox) const;
     void drawBovineLeg(const Shader& shader, const glm::mat4& root,
                        const glm::vec3& hip, float swing,
                        const glm::vec3& legColor, bool juvenile) const;

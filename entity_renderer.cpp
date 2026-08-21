@@ -30,11 +30,18 @@ void EntityRenderer::render(const Shader& shader, const AnimationSystem& animati
     {
         applyMaterial(shader, Materials::cow());
         drawCalf(shader, calf);
+        if (animations.nightMode())
+            drawCalfTether(shader, calf);
     }
     for (const Worker& worker : animations.workers())
     {
         applyMaterial(shader, Materials::cloth());
         drawWorker(shader, worker);
+    }
+    for (const Bird& bird : animations.birds())
+    {
+        applyMaterial(shader, Materials::cow());
+        drawBird(shader, bird);
     }
 }
 
@@ -61,7 +68,9 @@ void EntityRenderer::drawCow(const Shader& shader, const Cow& cow) const
 
     drawBovine(shader, makeRoot(cow.position, cow.yaw, cow.scale),
                 cow.bodyColor, cow.patchColor, gait, headDrop, headTurn,
-                tail, bob, cow.hornScale, false);
+                tail, bob, cow.hornScale, false,
+                cow.role == CattleRole::MilchCow,
+                cow.role == CattleRole::Ox);
 }
 
 void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
@@ -72,7 +81,68 @@ void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
     drawBovine(shader, makeRoot(calf.position, calf.yaw, calf.scale),
                 calf.bodyColor, calf.patchColor, gait, 0.0f,
                 std::sin(calf.animationTime * 2.0f) * 4.0f,
-                tail, bob, 0.0f, true);
+                tail, bob, 0.0f, true, false, false);
+}
+
+void EntityRenderer::drawCalfTether(const Shader& shader, const Calf& calf) const
+{
+    const glm::vec3 collar(calf.position.x, 0.72f, calf.position.z - 0.58f);
+    const glm::vec3 anchor(calf.position.x, 0.72f, -10.92f);
+    const float length = std::abs(anchor.z - collar.z);
+    applyMaterial(shader, Materials::wood());
+    cubes_.drawColored(shader, (collar + anchor) * 0.5f,
+                       glm::vec3(0.045f, 0.045f, length),
+                       glm::vec3(0.48f, 0.30f, 0.12f));
+    cubes_.drawColored(shader, anchor, glm::vec3(0.12f),
+                       glm::vec3(0.34f, 0.20f, 0.08f));
+}
+
+void EntityRenderer::drawBird(const Shader& shader, const Bird& bird) const
+{
+    glm::mat4 root = makeRoot(bird.position, bird.yaw, bird.scale);
+    const float cycle = bird.mobile ? std::sin(bird.animationTime * 9.0f) : 0.0f;
+    const bool seatedHen = !bird.mobile && !bird.juvenile;
+    const float bodyY = seatedHen ? 0.30f : 0.46f;
+    const glm::vec3 orange(0.92f, 0.48f, 0.08f);
+
+    if (bird.species == BirdSpecies::Duck)
+    {
+        primitives_.drawSphere(shader, root, glm::vec3(0.0f, bodyY, 0.0f),
+                               glm::vec3(1.15f, 0.62f, 0.72f), bird.color);
+        primitives_.drawSphere(shader, root, glm::vec3(0.48f, 0.82f, 0.0f),
+                               glm::vec3(0.58f), bird.color * 0.82f);
+        cubes_.drawColored(shader, root, glm::vec3(0.82f, 0.76f, 0.0f),
+                           glm::vec3(0.42f, 0.12f, 0.34f), orange);
+    }
+    else
+    {
+        primitives_.drawSphere(shader, root, glm::vec3(0.0f, bodyY, 0.0f),
+                               glm::vec3(0.88f, 0.78f, 0.76f), bird.color);
+        primitives_.drawSphere(shader, root, glm::vec3(0.38f, 0.82f, 0.0f),
+                               glm::vec3(0.48f), bird.color * 0.88f);
+        primitives_.drawCone(shader, root, glm::vec3(0.67f, 0.80f, 0.0f),
+                             glm::vec3(0.16f, 0.34f, 0.16f), orange,
+                             -90.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        if (!bird.juvenile)
+            cubes_.drawColored(shader, root, glm::vec3(0.35f, 1.08f, 0.0f),
+                               glm::vec3(0.20f, 0.18f, 0.12f), glm::vec3(0.78f, 0.05f, 0.03f));
+    }
+
+    for (float side : {-1.0f, 1.0f})
+        primitives_.drawSphere(shader, root, glm::vec3(-0.05f, bodyY + 0.04f, side * 0.34f),
+                               glm::vec3(0.55f, 0.38f, 0.12f), bird.color * 0.76f,
+                               side * (10.0f + cycle * 8.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    if (!seatedHen)
+    {
+        for (float side : {-1.0f, 1.0f})
+        {
+            cubes_.drawColored(shader, root,
+                               glm::vec3(side * cycle * 0.05f, 0.15f, side * 0.18f),
+                               glm::vec3(0.06f, 0.30f, 0.06f), orange,
+                               side * cycle * 18.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        }
+    }
 }
 
 void EntityRenderer::drawTether(const Shader& shader, const Cow& cow) const
@@ -112,7 +182,8 @@ void EntityRenderer::drawBovine(
     const Shader& shader, const glm::mat4& root,
     const glm::vec3& bodyColor, const glm::vec3& patchColor,
     float gaitAngle, float headDrop, float headTurn,
-    float tailAngle, float bodyBob, float hornScale, bool juvenile) const
+    float tailAngle, float bodyBob, float hornScale, bool juvenile,
+    bool showUdder, bool ox) const
 {
     const glm::vec3 darkLeg = bodyColor * 0.66f;
     const float bodyY = juvenile ? 1.20f : 1.38f;
@@ -123,6 +194,9 @@ void EntityRenderer::drawBovine(
 
     primitives_.drawSphere(shader, bobRoot, glm::vec3(0.0f, bodyY, 0.0f),
                            bodySize, bodyColor);
+    if (ox)
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(0.72f, bodyY + 0.55f, 0.0f),
+                               glm::vec3(0.88f, 0.62f, 1.00f), bodyColor * 0.88f);
     primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.35f, bodyY + 0.10f, 0.665f),
                            glm::vec3(0.88f, 0.65f, 0.07f), patchColor, 14.0f,
                            glm::vec3(0.0f, 0.0f, 1.0f));
@@ -175,7 +249,7 @@ void EntityRenderer::drawBovine(
     primitives_.drawSphere(shader, tail, glm::vec3(0.0f, -0.73f, 0.0f),
                            glm::vec3(0.24f, 0.30f, 0.24f), patchColor);
 
-    if (!juvenile)
+    if (showUdder)
     {
         primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.35f, 0.72f, 0.0f),
                                glm::vec3(0.60f, 0.34f, 0.42f),

@@ -73,6 +73,7 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees, float fanAn
     drawWaterFacility(shader);
     applyMaterial(shader, Materials::wood());
     drawTrees(shader);
+    drawPoultryShed(shader);
     applyMaterial(shader, Materials::metal());
     drawShedFans(shader, fanAngleDegrees);
     drawLightFixtures(shader, pointFixtureEmission, spotlightFixtureEmission);
@@ -276,8 +277,8 @@ void FarmScene::drawCowShed(const Shader& shader) const
     for (const float x : {-3.5f, 0.0f, 3.5f})
         cubes_.drawTextured(shader, origin + glm::vec3(x, 3.55f, 0.0f), glm::vec3(0.25f, 0.25f, 6.2f), textures_.wood, WarmWood, glm::vec2(5.0f, 0.5f));
 
-    cubes_.drawTextured(shader, origin + glm::vec3(-1.95f, 4.10f, 0.0f), glm::vec3(4.35f, 0.24f, 7.2f), textures_.roof, RoofTint, glm::vec2(3.0f, 5.0f), 14.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    cubes_.drawTextured(shader, origin + glm::vec3(1.95f, 4.10f, 0.0f), glm::vec3(4.35f, 0.24f, 7.2f), textures_.roof, RoofTint, glm::vec2(3.0f, 5.0f), -14.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    // Module 5 draws one sampled ruled-surface roof here. The old overlapping
+    // planar roof halves were intentionally removed.
 }
 
 void FarmScene::drawBarn(const Shader& shader) const
@@ -427,6 +428,43 @@ void FarmScene::drawWaterFacility(const Shader& shader) const
         cubes_.drawTextured(shader, origin + glm::vec3(x, 2.05f, 1.70f), glm::vec3(0.10f, 4.0f, 0.10f), textures_.metal, glm::vec3(0.68f));
     for (int rung = 0; rung < 7; ++rung)
         cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.55f + rung * 0.52f, 1.72f), glm::vec3(0.86f, 0.09f, 0.09f), textures_.metal, glm::vec3(0.68f));
+}
+
+void FarmScene::drawPoultryShed(const Shader& shader) const
+{
+    const glm::vec3 origin(10.0f, 0.0f, 7.3f);
+    applyMaterial(shader, Materials::wood());
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.08f, 0.0f),
+                        glm::vec3(3.4f, 0.16f, 3.4f), textures_.wood,
+                        glm::vec3(0.72f, 0.58f, 0.38f), glm::vec2(3.0f));
+    cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 1.05f, 1.55f),
+                        glm::vec3(3.3f, 2.0f, 0.18f), textures_.wood,
+                        WarmWood, glm::vec2(3.0f, 2.0f));
+    for (float x : {-1.58f, 1.58f})
+        cubes_.drawTextured(shader, origin + glm::vec3(x, 1.0f, 0.25f),
+                            glm::vec3(0.18f, 1.9f, 2.8f), textures_.wood,
+                            WarmWood, glm::vec2(2.0f));
+    for (float x : {-1.55f, 1.55f})
+        cubes_.drawTextured(shader, origin + glm::vec3(x, 1.25f, -1.48f),
+                            glm::vec3(0.16f, 2.5f, 0.16f), textures_.wood, WarmWood);
+
+    applyMaterial(shader, Materials::metal());
+    cubes_.drawTextured(shader, origin + glm::vec3(-0.78f, 2.18f, 0.0f),
+                        glm::vec3(1.95f, 0.16f, 3.7f), textures_.roof,
+                        RoofTint, glm::vec2(2.0f, 3.0f), 18.0f,
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+    cubes_.drawTextured(shader, origin + glm::vec3(0.78f, 2.18f, 0.0f),
+                        glm::vec3(1.95f, 0.16f, 3.7f), textures_.roof,
+                        RoofTint, glm::vec2(2.0f, 3.0f), -18.0f,
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+
+    applyMaterial(shader, Materials::hay());
+    cubes_.drawTextured(shader, origin + glm::vec3(0.20f, 0.28f, 0.70f),
+                        glm::vec3(1.55f, 0.30f, 1.05f), textures_.hay,
+                        HayTint, glm::vec2(2.0f));
+    cubes_.drawTextured(shader, origin + glm::vec3(-0.95f, 0.32f, -0.75f),
+                        glm::vec3(0.70f, 0.38f, 0.70f), textures_.hay,
+                        glm::vec3(0.64f, 0.82f, 0.32f));
 }
 
 void FarmScene::drawShedFans(const Shader& shader, float fanAngleDegrees) const

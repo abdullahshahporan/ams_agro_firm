@@ -12,6 +12,12 @@ enum class CowState
     Feeding
 };
 
+enum class CattleRole
+{
+    MilchCow,
+    Ox
+};
+
 struct Cow
 {
     glm::vec3 position;
@@ -30,6 +36,7 @@ struct Cow
     float hornScale;
     bool tied;
     glm::vec3 tetherAnchor;
+    CattleRole role;
 };
 
 struct Calf
@@ -45,6 +52,31 @@ struct Calf
     float direction;
     glm::vec3 bodyColor;
     glm::vec3 patchColor;
+    glm::vec3 shelterPosition;
+};
+
+enum class BirdSpecies
+{
+    Chicken,
+    Duck
+};
+
+struct Bird
+{
+    BirdSpecies species;
+    glm::vec3 position;
+    glm::vec3 shelterPosition;
+    glm::vec3 pathCenter;
+    glm::vec2 pathRadius;
+    float pathAngle;
+    float direction;
+    float speed;
+    float scale;
+    float yaw;
+    float animationTime;
+    bool mobile;
+    bool juvenile;
+    glm::vec3 color;
 };
 
 enum class WorkerState
@@ -73,6 +105,7 @@ public:
     AnimationSystem();
 
     void update(float deltaTime);
+    void setNightMode(bool nightMode);
 
     void toggleAdultCows() { adultCowsOn_ = !adultCowsOn_; }
     void toggleCalves() { calvesOn_ = !calvesOn_; }
@@ -86,26 +119,31 @@ public:
     bool workersOn() const { return workersOn_; }
     bool fansOn() const { return fansOn_; }
     float fanAngle() const { return fanAngle_; }
+    bool nightMode() const { return nightMode_; }
 
-    const std::array<Cow, 4>& cows() const { return cows_; }
+    const std::array<Cow, 2>& cows() const { return cows_; }
     const std::array<Calf, 2>& calves() const { return calves_; }
     const std::array<Worker, 2>& workers() const { return workers_; }
+    const std::array<Bird, 7>& birds() const { return birds_; }
 
 private:
     static void updateCowPatrol(Cow& cow, float deltaTime);
     static void updateCalfPath(Calf& calf, float deltaTime);
     static void updateWorker(Worker& worker, float deltaTime);
+    static void updateBirdPath(Bird& bird, float deltaTime);
     static float yawForDirection(const glm::vec3& direction);
 
-    std::array<Cow, 4> cows_;
+    std::array<Cow, 2> cows_;
     std::array<Calf, 2> calves_;
     std::array<Worker, 2> workers_;
+    std::array<Bird, 7> birds_;
 
     bool adultCowsOn_{true};
     bool calvesOn_{true};
     bool headMotionOn_{true};
     bool workersOn_{true};
     bool fansOn_{true};
+    bool nightMode_{false};
     float fanAngle_{0.0f};
 };
 

@@ -6,7 +6,9 @@
 
 #include "camera.h"
 #include "animation_system.h"
+#include "collision_system.h"
 #include "cube_renderer.h"
+#include "curved_renderer.h"
 #include "entity_renderer.h"
 #include "farm_scene.h"
 #include "lighting_system.h"
@@ -35,6 +37,8 @@ bool firstMouseEvent = true;
 bool gateShouldBeOpen = false;
 float gateAngleDegrees = 0.0f;
 bool texturesEnabled = true;
+bool birdEyeMode = false;
+bool fourViewMode = false;
 AnimationSystem animationSystem;
 LightingSystem lightingSystem;
 
@@ -107,6 +111,7 @@ void keyCallback(GLFWwindow*, int key, int, int action, int)
     if (key == GLFW_KEY_4 && action == GLFW_PRESS)
     {
         lightingSystem.toggleDayNight();
+        animationSystem.setNightMode(lightingSystem.nightMode());
         std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY") << '\n';
     }
     if (key == GLFW_KEY_5 && action == GLFW_PRESS)
@@ -124,10 +129,31 @@ void keyCallback(GLFWwindow*, int key, int, int action, int)
         lightingSystem.toggleSpecular();
         std::cout << "Specular component: " << (lightingSystem.specularEnabled() ? "ON" : "OFF") << '\n';
     }
+    if (key == GLFW_KEY_B && action == GLFW_PRESS)
+    {
+        birdEyeMode = !birdEyeMode;
+        if (birdEyeMode)
+            fourViewMode = false;
+        firstMouseEvent = true;
+        std::cout << "Bird's-eye view: " << (birdEyeMode ? "ON" : "OFF") << '\n';
+    }
+    if (key == GLFW_KEY_V && action == GLFW_PRESS)
+    {
+        fourViewMode = !fourViewMode;
+        if (fourViewMode)
+            birdEyeMode = false;
+        firstMouseEvent = true;
+        std::cout << "Four-view mode: " << (fourViewMode ? "ON" : "OFF") << '\n';
+    }
 }
 
 void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 {
+    if (birdEyeMode || fourViewMode)
+    {
+        firstMouseEvent = true;
+        return;
+    }
     if (firstMouseEvent)
     {
         lastMouseX = static_cast<float>(xPosition);
@@ -145,7 +171,16 @@ void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 
 void scrollCallback(GLFWwindow*, double, double yOffset)
 {
-    camera.processMouseScroll(static_cast<float>(yOffset));
+    if (!birdEyeMode && !fourViewMode)
+        camera.processMouseScroll(static_cast<float>(yOffset));
+}
+
+void tryCameraMovement(CameraMovement movement)
+{
+    const glm::vec3 previous = camera.Position;
+    camera.processKeyboard(movement, deltaTime);
+    if (!CollisionSystem::canOccupy(camera.Position, gateAngleDegrees))
+        camera.Position = previous;
 }
 
 void processInput(GLFWwindow* window)
@@ -153,18 +188,21 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    if (birdEyeMode || fourViewMode)
+        return;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Forward, deltaTime);
+        tryCameraMovement(CameraMovement::Forward);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Backward, deltaTime);
+        tryCameraMovement(CameraMovement::Backward);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Left, deltaTime);
+        tryCameraMovement(CameraMovement::Left);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Right, deltaTime);
+        tryCameraMovement(CameraMovement::Right);
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Down, deltaTime);
+        tryCameraMovement(CameraMovement::Down);
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        camera.processKeyboard(CameraMovement::Up, deltaTime);
+        tryCameraMovement(CameraMovement::Up);
 }
 
 void updateAnimations(float frameDeltaTime)
@@ -181,24 +219,52 @@ void updateAnimations(float frameDeltaTime)
 }
 
 void renderScene(const Shader& shader, const FarmScene& farmScene,
-                 const EntityRenderer& entityRenderer)
+                 const EntityRenderer& entityRenderer,
+                 const CurvedRenderer& curvedRenderer,
+                 const FarmTextures& textures)
 {
     farmScene.render(shader, gateAngleDegrees, animationSystem.fanAngle(),
                      lightingSystem.pointFixtureEmission(),
                      lightingSystem.spotlightFixtureEmission());
     entityRenderer.render(shader, animationSystem);
+    curvedRenderer.render(shader, textures);
+}
+
+glm::mat4 technicalProjection(float aspectRatio, float halfHeight)
+{
+    const float halfWidth = halfHeight * aspectRatio;
+    return glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, 0.1f, 120.0f);
+}
+
+void renderOneView(
+    const Shader& shader, const FarmScene& farmScene,
+    const EntityRenderer& entityRenderer, const CurvedRenderer& curvedRenderer,
+    const FarmTextures& textures, int x, int y, int width, int height,
+    const glm::mat4& view, const glm::mat4& projection,
+    const glm::vec3& viewPosition)
+{
+    if (width <= 0 || height <= 0)
+        return;
+    glViewport(x, y, width, height);
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    lightingSystem.setupShader(shader, viewPosition);
+    renderScene(shader, farmScene, entityRenderer, curvedRenderer, textures);
 }
 
 void printControls()
 {
     std::cout
         << "========================================\n"
-        << "AMS AGRO FARM - MODULE 4\n"
+        << "AMS AGRO FARM - FINAL MODULE 5\n"
         << "========================================\n"
         << "W/A/S/D : Move Camera\n"
         << "Mouse   : Look Around\n"
         << "Q/E     : Move Down/Up\n"
         << "Scroll  : Zoom\n"
+        << "B       : Bird's-Eye View\n"
+        << "V       : Four-Viewport Mode\n"
         << "G       : Open/Close Farm Gate\n"
         << "T       : Toggle Textures\n"
         << "C       : Pause/Resume Adult Cows\n"
@@ -215,7 +281,7 @@ void printControls()
         << "7       : Specular Component ON/OFF\n"
         << "ESC     : Exit\n"
         << "========================================\n"
-        << "Phong Lighting + Multiple Lights + Day/Night\n"
+        << "Curves + Multiple Views + Integrated Farm\n"
         << "========================================\n";
 }
 }
@@ -237,7 +303,7 @@ int main()
     GLFWwindow* window = glfwCreateWindow(
         InitialWidth,
         InitialHeight,
-        "AMS Agro Farm - Module 4",
+        "AMS Agro Farm - Final Module 5",
         nullptr,
         nullptr);
 
@@ -276,6 +342,7 @@ int main()
         TextureManager textureManager;
         CubeRenderer cubeRenderer;
         PrimitiveRenderer primitiveRenderer;
+        CurvedRenderer curvedRenderer;
         FarmScene farmScene(cubeRenderer, textureManager.farm());
         EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
 
@@ -306,11 +373,58 @@ int main()
                 const glm::mat4 view = camera.getViewMatrix();
 
                 cubeRenderer.setTexturesEnabled(texturesEnabled);
-                textureShader.use();
-                textureShader.setMat4("projection", projection);
-                textureShader.setMat4("view", view);
-                lightingSystem.setupShader(textureShader, camera.Position);
-                renderScene(textureShader, farmScene, entityRenderer);
+                curvedRenderer.setTexturesEnabled(texturesEnabled);
+
+                if (fourViewMode && framebufferWidth >= 2 && framebufferHeight >= 2)
+                {
+                    const int leftWidth = framebufferWidth / 2;
+                    const int rightWidth = framebufferWidth - leftWidth;
+                    const int bottomHeight = framebufferHeight / 2;
+                    const int topHeight = framebufferHeight - bottomHeight;
+
+                    const float freeAspect = static_cast<float>(leftWidth) / topHeight;
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), 0, bottomHeight, leftWidth, topHeight,
+                                  camera.getViewMatrix(),
+                                  glm::perspective(glm::radians(camera.Zoom), freeAspect, 0.1f, 150.0f),
+                                  camera.Position);
+
+                    const glm::vec3 topEye(0.0f, 42.0f, 0.01f);
+                    const float topAspect = static_cast<float>(rightWidth) / topHeight;
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), leftWidth, bottomHeight, rightWidth, topHeight,
+                                  glm::lookAt(topEye, glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+                                  technicalProjection(topAspect, 19.5f), topEye);
+
+                    const glm::vec3 frontEye(0.0f, 8.0f, 36.0f);
+                    const float frontAspect = static_cast<float>(leftWidth) / bottomHeight;
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), 0, 0, leftWidth, bottomHeight,
+                                  glm::lookAt(frontEye, glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+                                  technicalProjection(frontAspect, 12.5f), frontEye);
+
+                    const glm::vec3 sideEye(36.0f, 8.0f, 0.0f);
+                    const float sideAspect = static_cast<float>(rightWidth) / bottomHeight;
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), leftWidth, 0, rightWidth, bottomHeight,
+                                  glm::lookAt(sideEye, glm::vec3(0.0f, 2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+                                  technicalProjection(sideAspect, 12.5f), sideEye);
+                }
+                else if (birdEyeMode)
+                {
+                    const float aspect = static_cast<float>(framebufferWidth) / framebufferHeight;
+                    const glm::vec3 birdEye(0.0f, 42.0f, 0.01f);
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), 0, 0, framebufferWidth, framebufferHeight,
+                                  glm::lookAt(birdEye, glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+                                  technicalProjection(aspect, 19.5f), birdEye);
+                }
+                else
+                {
+                    renderOneView(textureShader, farmScene, entityRenderer, curvedRenderer,
+                                  textureManager.farm(), 0, 0, framebufferWidth, framebufferHeight,
+                                  view, projection, camera.Position);
+                }
             }
 
             glfwSwapBuffers(window);
