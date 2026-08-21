@@ -54,15 +54,21 @@ solution intentionally exposes the compatible `Debug | x64` configuration.
 - `M`: advance the worker task: go to cows, feed, then go home
 - `K`: send the worker directly home
 - `L`: recall/release calves, chickens and ducks to/from their shelters
+- `J`: release the two calves through the ox-side shed door or send them back
+- `N`: bring both calves through the ox-side door to the internal fodder lane
 - `F`: pause/resume both shed fans
-- `1`: toggle directional sunlight
-- `2`: toggle all three point lights
-- `3`: toggle the entrance spotlight
+- `1` or numpad `1`: toggle directional sunlight
+- `2` or numpad `2`: switch all point-light groups on/off together
+- `3` or numpad `3`: toggle the entrance spotlight
 - `4` (or numpad `4`): switch between day and night; the window title confirms
   the active mode and whether the night lamps are enabled
-- `5`: toggle the ambient lighting component
-- `6`: toggle the diffuse lighting component
-- `7`: toggle the specular lighting component
+- `5` or numpad `5`: toggle the ambient lighting component
+- `6` or numpad `6`: toggle the diffuse lighting component
+- `7` or numpad `7`: toggle the specular lighting component
+- `8` or numpad `8`: toggle the cattle-shed and farm-building lights independently
+- `9` or numpad `9`: toggle all boundary-fence globe lamps independently
+- `0` or numpad `0`: toggle the entrance-banner light independently
+- `P`: toggle the owner-billboard light independently
 - `Esc`: close the application
 
 ## Texture assets
@@ -97,6 +103,12 @@ fall back to a visible checker if loading fails. `GL_REPEAT`,
 - exactly two adult cattle: one feeding milch cow and one ox
 - two calves running smoothly on separate elliptical paths
 - one command-driven worker and a dedicated worker house
+- worker house relocated outside the entrance-gate swing envelope
+- shallow curved left-field billboard with unobstructed farm/owner identification
+- dedicated warm night lamps for the entrance banner and owner billboard
+- round emissive globe lamps on every major boundary-fence post
+- animated calf door built into the cattle-shed wall beside the ox
+- command-driven calf routes: ox-side shed lane, open field and internal fodder mats
 - daytime free-running calves, chickens and ducks
 - a small open-front poultry shed with a seated hen and chicks
 - night shelter routine: all animals stop and move inside their shelters
@@ -128,7 +140,9 @@ four views does not multiply movement speed.
 8. Visit the shed; verify the fan mounts remain fixed while only the rotors turn.
 9. Enter the shed and verify two tied cows, green fodder, bulbs and fans are visible.
 10. Press `4`; verify the sky darkens and artificial fixtures dominate the night scene.
-11. At night test `1`, `2`, and `3`, then independently test Phong components with `5`, `6`, and `7`.
+11. At night test `1`, `2`, and `3`; use `8`, `9`, `0`, and `P` to verify
+    shed, fence, banner, and billboard lights independently; then test Phong
+    components with `5`, `6`, and `7`.
 12. Inspect the gate, fan and water facility for stronger metal highlights than grass/hay.
 13. Inspect the Bézier milk can, spline pipe and curved ruled roof.
 14. Press `B` and confirm the whole farm appears in an undistorted top view.
@@ -140,3 +154,10 @@ four views does not multiply movement speed.
 18. With the entrance gate closed, walk toward it at full speed and confirm the
     swept collision prevents passing through; open it and use the clear center gap.
 19. Press `O`, enter the opened rear stall gates, and inspect both cattle from behind.
+20. Press `J`; verify the door beside the ox opens, both calves leave through
+    that side passage, and the door closes after they reach the field. Press
+    `J` again and verify the reverse trip into the cattle shed.
+21. Release the calves and press `N`; verify both return through the same
+    ox-side door, stop at separate internal fodder mats and lower their heads.
+22. Open the main gate fully and verify neither leaf intersects the relocated
+    worker house. At night, inspect the round lamps on all boundary posts.

@@ -10,7 +10,8 @@ class CollisionSystem
 {
 public:
     static bool canOccupy(const glm::vec3& position, float gateAngleDegrees,
-                          float stallGateAngleDegrees)
+                          float stallGateAngleDegrees,
+                          float calfShedDoorAngleDegrees)
     {
         constexpr float radius = 0.38f;
         if (position.y < 0.45f || position.y > 30.0f ||
@@ -18,10 +19,11 @@ public:
             return false;
 
         struct Box { float minX, maxX, minZ, maxZ, height; };
-        const std::array<Box, 26> obstacles = {{
+        const std::array<Box, 29> obstacles = {{
             {-14.3f,-5.7f,-11.8f,-11.0f,4.8f}, // shed back wall
             {-14.3f,-13.45f,-11.8f,-5.0f,4.2f},
-            { -6.55f,-5.7f,-11.8f,-5.0f,4.2f},
+            { -6.55f,-5.7f,-11.8f,-10.22f,4.2f}, // ox-side wall behind calf door
+            { -6.55f,-5.7f, -8.98f, -5.0f,4.2f}, // ox-side wall ahead of door
             {-14.4f,-13.6f, -8.4f,-7.1f,4.2f},
             {-10.4f, -9.6f, -8.4f,-7.1f,4.2f},
             { -6.4f, -5.6f, -8.4f,-7.1f,4.2f},
@@ -39,12 +41,14 @@ public:
             {-11.5f,-4.8f,  1.0f, 5.0f,2.8f}, // hay stacks
             {-12.8f,-11.2f, -9.45f,-6.55f,2.4f}, // milch cow
             { -8.8f, -7.2f, -9.55f,-6.45f,2.5f}, // ox
-            {  2.2f,  2.65f,10.2f,13.7f,3.5f},   // worker house
-            {  5.35f, 5.8f,10.2f,13.7f,3.5f},
-            {  2.2f,  5.8f,13.25f,13.7f,3.5f},
-            {  2.2f,  3.3f,10.2f,10.7f,3.5f},
-            {  4.7f,  5.8f,10.2f,10.7f,3.5f},
-            {  6.4f, 10.2f,-2.4f, 0.4f,2.2f}    // milk collection platform
+            {  6.2f,  6.65f,10.2f,13.7f,3.5f},  // relocated worker house
+            {  9.35f, 9.8f,10.2f,13.7f,3.5f},
+            {  6.2f,  9.8f,13.25f,13.7f,3.5f},
+            {  6.2f,  7.3f,10.2f,10.7f,3.5f},
+            {  8.7f,  9.8f,10.2f,10.7f,3.5f},
+            {  6.4f, 10.2f,-2.4f, 0.4f,2.2f},   // milk collection platform
+            {-14.3f,-13.8f,10.4f,11.0f,4.3f},   // billboard supports
+            { -6.2f, -5.7f,10.4f,11.0f,4.3f}
         }};
         for (const Box& box : obstacles)
         {
@@ -57,7 +61,7 @@ public:
         }
 
         const std::array<glm::vec2, 8> trees = {{
-            {-15.8f,-14.5f}, {-15.7f,7.5f}, {-14.2f,13.0f}, {15.8f,-15.4f},
+            {-15.8f,-14.5f}, {-16.4f,7.2f}, {-16.6f,13.0f}, {15.8f,-15.4f},
             {16.0f,6.0f}, {13.6f,12.5f}, {-2.0f,-16.0f}, {5.5f,-16.1f}
         }};
         if (position.y < 7.6f)
@@ -125,6 +129,19 @@ public:
                 if (distanceToSegment(point, start, end) < radius + 0.08f)
                     return false;
             }
+        }
+
+        // The calf door opens outward from the wall beside the ox. Collision
+        // follows the same hinge and swing used by the visible wooden leaf.
+        if (position.y < 3.8f)
+        {
+            const float angle = glm::radians(calfShedDoorAngleDegrees);
+            const glm::vec2 point(position.x, position.z);
+            const glm::vec2 start(-6.06f, -10.24f);
+            const glm::vec2 end = start +
+                glm::vec2(std::sin(angle) * 1.24f, std::cos(angle) * 1.24f);
+            if (distanceToSegment(point, start, end) < radius + 0.08f)
+                return false;
         }
         return true;
     }

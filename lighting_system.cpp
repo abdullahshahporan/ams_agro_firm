@@ -7,12 +7,40 @@
 
 LightingSystem::LightingSystem() = default;
 
-const std::array<glm::vec3, 3>& LightingSystem::pointLightPositions()
+bool LightingSystem::pointLightsEnabled() const
 {
-    static const std::array<glm::vec3, 3> positions = {
+    return shedLightsEnabled_ || fenceLightsEnabled_ ||
+           bannerLightEnabled_ || billboardLightEnabled_;
+}
+
+void LightingSystem::togglePointLights()
+{
+    const bool allEnabled = shedLightsEnabled_ && fenceLightsEnabled_ &&
+                            bannerLightEnabled_ && billboardLightEnabled_;
+    const bool newState = !allEnabled;
+    shedLightsEnabled_ = newState;
+    fenceLightsEnabled_ = newState;
+    bannerLightEnabled_ = newState;
+    billboardLightEnabled_ = newState;
+}
+
+bool LightingSystem::pointLightEnabled(std::size_t index) const
+{
+    if (index <= 2)
+        return shedLightsEnabled_;
+    if (index == 3)
+        return bannerLightEnabled_;
+    return billboardLightEnabled_;
+}
+
+const std::array<glm::vec3, 5>& LightingSystem::pointLightPositions()
+{
+    static const std::array<glm::vec3, 5> positions = {
         glm::vec3(-12.1f, 3.00f, -8.50f),
         glm::vec3( -7.9f, 3.00f, -8.50f),
-        glm::vec3( 11.0f, 3.15f,-11.00f)
+        glm::vec3( 11.0f, 3.15f,-11.00f),
+        glm::vec3(  0.0f, 5.55f, 16.10f), // entrance banner downlight
+        glm::vec3(-10.0f, 5.35f, 11.65f)  // owner billboard downlight
     };
     return positions;
 }
@@ -33,7 +61,8 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
 {
     shader.setVec3("viewPos", viewPosition);
     shader.setBool("directionalLightEnabled", directionalEnabled_);
-    shader.setBool("pointLightsEnabled", pointLightsEnabled_);
+    shader.setBool("pointLightsEnabled",
+                   shedLightsEnabled_ || bannerLightEnabled_ || billboardLightEnabled_);
     shader.setBool("spotLightEnabled", spotlightEnabled_);
     shader.setBool("ambientEnabled", ambientEnabled_);
     shader.setBool("diffuseEnabled", diffuseEnabled_);
@@ -60,11 +89,18 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
     for (std::size_t index = 0; index < positions.size(); ++index)
     {
         const std::string prefix = "pointLights[" + std::to_string(index) + "].";
+        const bool enabled = pointLightEnabled(index);
         shader.setVec3(prefix + "position", positions[index]);
         shader.setFloat(prefix + "constant", 1.0f);
         shader.setFloat(prefix + "linear", nightMode_ ? 0.055f : 0.09f);
         shader.setFloat(prefix + "quadratic", nightMode_ ? 0.012f : 0.032f);
-        if (nightMode_)
+        if (!enabled)
+        {
+            shader.setVec3(prefix + "ambient", glm::vec3(0.0f));
+            shader.setVec3(prefix + "diffuse", glm::vec3(0.0f));
+            shader.setVec3(prefix + "specular", glm::vec3(0.0f));
+        }
+        else if (nightMode_)
         {
             shader.setVec3(prefix + "ambient", glm::vec3(0.045f, 0.032f, 0.018f));
             shader.setVec3(prefix + "diffuse", glm::vec3(1.38f, 0.94f, 0.48f));
@@ -105,11 +141,24 @@ glm::vec3 LightingSystem::clearColor() const
                       : glm::vec3(0.52f, 0.78f, 0.94f);
 }
 
-float LightingSystem::pointFixtureEmission() const
+float LightingSystem::fixtureEmission(bool enabled) const
 {
-    if (!pointLightsEnabled_)
+    if (!enabled)
         return 0.02f;
     return nightMode_ ? 1.65f : 0.24f;
+}
+
+std::array<float, 5> LightingSystem::pointFixtureEmissions() const
+{
+    std::array<float, 5> emissions{};
+    for (std::size_t index = 0; index < emissions.size(); ++index)
+        emissions[index] = fixtureEmission(pointLightEnabled(index));
+    return emissions;
+}
+
+float LightingSystem::fenceFixtureEmission() const
+{
+    return fixtureEmission(fenceLightsEnabled_);
 }
 
 float LightingSystem::spotlightFixtureEmission() const

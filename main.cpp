@@ -40,6 +40,7 @@ bool gateShouldBeOpen = false;
 float gateAngleDegrees = 0.0f;
 bool stallGatesShouldBeOpen = false;
 float stallGateAngleDegrees = 0.0f;
+float calfShedDoorAngleDegrees = 0.0f;
 bool texturesEnabled = true;
 bool birdEyeMode = false;
 bool fourViewMode = false;
@@ -58,8 +59,11 @@ void updateWindowTitle(GLFWwindow* window)
     title += lightingSystem.nightMode() ? "NIGHT" : "DAY";
     if (lightingSystem.nightMode())
     {
-        title += lightingSystem.pointLightsEnabled() ? " | Shed lamps ON" : " | Shed lamps OFF";
-        title += lightingSystem.spotlightEnabled() ? " | Gate spotlight ON" : " | Gate spotlight OFF";
+        title += lightingSystem.shedLightsEnabled() ? " | Shed ON" : " | Shed OFF";
+        title += lightingSystem.fenceLightsEnabled() ? " | Fence ON" : " | Fence OFF";
+        title += lightingSystem.bannerLightEnabled() ? " | Banner ON" : " | Banner OFF";
+        title += lightingSystem.billboardLightEnabled() ? " | Billboard ON" : " | Billboard OFF";
+        title += lightingSystem.spotlightEnabled() ? " | Spot ON" : " | Spot OFF";
     }
     glfwSetWindowTitle(window, title.c_str());
 }
@@ -126,25 +130,63 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
                       ? "returning/staying in shelters" : "released to daytime fields")
                   << '\n';
     }
+    if (key == GLFW_KEY_J && action == GLFW_PRESS)
+    {
+        animationSystem.toggleCalfShed();
+        std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+    }
+    if (key == GLFW_KEY_N && action == GLFW_PRESS)
+    {
+        animationSystem.sendCalvesToFeed();
+        std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+    }
     if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
         animationSystem.toggleFans();
         std::cout << "Shed fans: " << (animationSystem.fansOn() ? "ON" : "PAUSED") << '\n';
     }
 
-    if (key == GLFW_KEY_1 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_1 || key == GLFW_KEY_KP_1) && action == GLFW_PRESS)
     {
         lightingSystem.toggleDirectional();
         std::cout << "Directional light: " << (lightingSystem.directionalEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
-    if (key == GLFW_KEY_2 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_2 || key == GLFW_KEY_KP_2) && action == GLFW_PRESS)
     {
         lightingSystem.togglePointLights();
         std::cout << "Point lights: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
-    if (key == GLFW_KEY_3 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_8 || key == GLFW_KEY_KP_8) && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleShedLights();
+        std::cout << "Shed/building lights: "
+                  << (lightingSystem.shedLightsEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
+    }
+    if ((key == GLFW_KEY_9 || key == GLFW_KEY_KP_9) && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleFenceLights();
+        std::cout << "Fence lamps: "
+                  << (lightingSystem.fenceLightsEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
+    }
+    if ((key == GLFW_KEY_0 || key == GLFW_KEY_KP_0) && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleBannerLight();
+        std::cout << "Entrance banner light: "
+                  << (lightingSystem.bannerLightEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
+    }
+    if (key == GLFW_KEY_P && action == GLFW_PRESS)
+    {
+        lightingSystem.toggleBillboardLight();
+        std::cout << "Owner billboard light: "
+                  << (lightingSystem.billboardLightEnabled() ? "ON" : "OFF") << '\n';
+        updateWindowTitle(window);
+    }
+    if ((key == GLFW_KEY_3 || key == GLFW_KEY_KP_3) && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpotlight();
         std::cout << "Entrance spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF") << '\n';
@@ -156,21 +198,24 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         animationSystem.setNightMode(lightingSystem.nightMode());
         updateWindowTitle(window);
         std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY")
-                  << " | Shed lamps: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF")
-                  << " | Gate spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF")
+                  << " | Shed: " << (lightingSystem.shedLightsEnabled() ? "ON" : "OFF")
+                  << " | Fence: " << (lightingSystem.fenceLightsEnabled() ? "ON" : "OFF")
+                  << " | Banner: " << (lightingSystem.bannerLightEnabled() ? "ON" : "OFF")
+                  << " | Billboard: " << (lightingSystem.billboardLightEnabled() ? "ON" : "OFF")
+                  << " | Spot: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF")
                   << '\n';
     }
-    if (key == GLFW_KEY_5 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_5 || key == GLFW_KEY_KP_5) && action == GLFW_PRESS)
     {
         lightingSystem.toggleAmbient();
         std::cout << "Ambient component: " << (lightingSystem.ambientEnabled() ? "ON" : "OFF") << '\n';
     }
-    if (key == GLFW_KEY_6 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_6 || key == GLFW_KEY_KP_6) && action == GLFW_PRESS)
     {
         lightingSystem.toggleDiffuse();
         std::cout << "Diffuse component: " << (lightingSystem.diffuseEnabled() ? "ON" : "OFF") << '\n';
     }
-    if (key == GLFW_KEY_7 && action == GLFW_PRESS)
+    if ((key == GLFW_KEY_7 || key == GLFW_KEY_KP_7) && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpecular();
         std::cout << "Specular component: " << (lightingSystem.specularEnabled() ? "ON" : "OFF") << '\n';
@@ -236,7 +281,9 @@ void tryCameraMovement(CameraMovement movement)
     {
         const glm::vec3 candidate = glm::mix(previous, requested,
             static_cast<float>(step) / static_cast<float>(steps));
-        if (!CollisionSystem::canOccupy(candidate, gateAngleDegrees, stallGateAngleDegrees))
+        if (!CollisionSystem::canOccupy(candidate, gateAngleDegrees,
+                                        stallGateAngleDegrees,
+                                        calfShedDoorAngleDegrees))
             break;
         camera.Position = candidate;
     }
@@ -281,6 +328,15 @@ void updateAnimations(float frameDeltaTime)
         stallGateAngleDegrees = std::max(stallGateAngleDegrees - maximumStep, stallTarget);
 
     animationSystem.update(frameDeltaTime);
+
+    const float calfDoorTarget = animationSystem.calfShedDoorNeeded() ? 92.0f : 0.0f;
+    const float calfDoorStep = 180.0f * frameDeltaTime;
+    if (calfShedDoorAngleDegrees < calfDoorTarget)
+        calfShedDoorAngleDegrees = std::min(calfShedDoorAngleDegrees + calfDoorStep,
+                                            calfDoorTarget);
+    else if (calfShedDoorAngleDegrees > calfDoorTarget)
+        calfShedDoorAngleDegrees = std::max(calfShedDoorAngleDegrees - calfDoorStep,
+                                            calfDoorTarget);
 }
 
 void renderScene(const Shader& shader, const FarmScene& farmScene,
@@ -289,8 +345,10 @@ void renderScene(const Shader& shader, const FarmScene& farmScene,
                  const FarmTextures& textures)
 {
     farmScene.render(shader, gateAngleDegrees, stallGateAngleDegrees,
+                     calfShedDoorAngleDegrees,
                      animationSystem.fanAngle(),
-                     lightingSystem.pointFixtureEmission(),
+                     lightingSystem.pointFixtureEmissions(),
+                     lightingSystem.fenceFixtureEmission(),
                      lightingSystem.spotlightFixtureEmission());
     entityRenderer.render(shader, animationSystem);
     curvedRenderer.render(shader, textures);
@@ -340,14 +398,20 @@ void printControls()
         << "M       : Next Worker Task (Go/Feed/Home)\n"
         << "K       : Send Worker Home\n"
         << "L       : Recall/Release Mobile Animals\n"
+        << "J       : Calves Leave/Return Ox-Side Shed\n"
+        << "N       : Send Calves Through Ox-Side Door to Feed\n"
         << "F       : Pause/Resume Shed Fans\n"
-        << "1       : Directional Light ON/OFF\n"
-        << "2       : Point Lights ON/OFF\n"
-        << "3       : Entrance Spotlight ON/OFF\n"
+        << "1/KP1   : Directional Light ON/OFF\n"
+        << "2/KP2   : All Point-Light Groups ON/OFF\n"
+        << "3/KP3   : Entrance Spotlight ON/OFF\n"
         << "4/KP4   : Day/Night Toggle\n"
-        << "5       : Ambient Component ON/OFF\n"
-        << "6       : Diffuse Component ON/OFF\n"
-        << "7       : Specular Component ON/OFF\n"
+        << "5/KP5   : Ambient Component ON/OFF\n"
+        << "6/KP6   : Diffuse Component ON/OFF\n"
+        << "7/KP7   : Specular Component ON/OFF\n"
+        << "8/KP8   : Shed/Building Lights ON/OFF\n"
+        << "9/KP9   : Fence Lamps ON/OFF\n"
+        << "0/KP0   : Entrance Banner Light ON/OFF\n"
+        << "P       : Owner Billboard Light ON/OFF\n"
         << "ESC     : Exit\n"
         << "========================================\n"
         << "Curves + Multiple Views + Integrated Farm\n"
@@ -413,7 +477,7 @@ int main()
         CubeRenderer cubeRenderer;
         PrimitiveRenderer primitiveRenderer;
         CurvedRenderer curvedRenderer;
-        FarmScene farmScene(cubeRenderer, textureManager.farm());
+        FarmScene farmScene(cubeRenderer, primitiveRenderer, textureManager.farm());
         EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
 
         if (textureManager.allFilesLoaded())

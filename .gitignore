@@ -1,0 +1,67 @@
+# AMS Agro Farm - generated and local-only files
+
+# Local Markdown notes/prompts (keep public project and dependency docs)
+*.md
+!README.md
+!lib/MinGW/GLFW-LICENSE.md
+
+# Compiled programs and intermediate objects
+*.exe
+*.o
+*.obj
+*.out
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.tlog
+*.lastbuildstate
+
+# Build output directories
+Debug/
+Release/
+x64/
+x86/
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Visual Studio local state
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+ipch/
+
+# Keep shared VS Code run/build configuration, ignore local extras
+.vscode/*
+!.vscode/c_cpp_properties.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Logs, temporary files, backups and test captures
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+*_check.png
+*_test.png
+screenshot*.png
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Preserve the prebuilt GLFW files required by run_project.ps1
+!bin/MinGW/glfw3.dll
+!lib/MinGW/libglfw3dll.a

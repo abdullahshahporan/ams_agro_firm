@@ -53,7 +53,23 @@ struct Calf
     glm::vec3 bodyColor;
     glm::vec3 patchColor;
     glm::vec3 shelterPosition;
-    enum class RouteState { Roaming, GoingToShelter, Sheltered, GoingToField } routeState;
+    glm::vec3 feedingPosition;
+    enum class RouteState
+    {
+        Roaming,
+        GoingToShelter,
+        Sheltered,
+        GoingToField,
+        GoingToFeed,
+        Feeding
+    } routeState;
+};
+
+enum class CalfDestination
+{
+    Home,
+    Field,
+    FeedingArea
 };
 
 enum class BirdSpecies
@@ -112,6 +128,8 @@ public:
     void update(float deltaTime);
     void setNightMode(bool nightMode);
     void toggleAnimalShelter();
+    void toggleCalfShed();
+    void sendCalvesToFeed();
     void commandWorker();
     void sendWorkerHome();
 
@@ -128,6 +146,8 @@ public:
     float fanAngle() const { return fanAngle_; }
     bool nightMode() const { return nightMode_; }
     bool animalShelterRequested() const { return shelterRequested_ || nightMode_; }
+    bool calfShedDoorNeeded() const;
+    const char* calfStatus() const;
     const char* workerStatus() const;
 
     const std::array<Cow, 2>& cows() const { return cows_; }
@@ -138,7 +158,8 @@ public:
 private:
     static void updateCowPatrol(Cow& cow, float deltaTime);
     static void updateCalfPath(Calf& calf, float deltaTime);
-    static void updateCalfNavigation(Calf& calf, float deltaTime, bool shelterRequested);
+    static void updateCalfNavigation(Calf& calf, float deltaTime,
+                                     CalfDestination destination);
     static void updateWorker(Worker& worker, float deltaTime);
     static void updateBirdPath(Bird& bird, float deltaTime);
     static void updateBirdNavigation(Bird& bird, float deltaTime, bool shelterRequested);
@@ -157,6 +178,7 @@ private:
     bool fansOn_{true};
     bool nightMode_{false};
     bool shelterRequested_{false};
+    CalfDestination calfDestination_{CalfDestination::Home};
     float fanAngle_{0.0f};
 };
 

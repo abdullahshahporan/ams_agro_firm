@@ -30,8 +30,6 @@ void EntityRenderer::render(const Shader& shader, const AnimationSystem& animati
     {
         applyMaterial(shader, Materials::cow());
         drawCalf(shader, calf);
-        if (calf.routeState == Calf::RouteState::Sheltered)
-            drawCalfTether(shader, calf);
     }
     for (const Worker& worker : animations.workers())
     {
@@ -77,11 +75,17 @@ void EntityRenderer::drawCow(const Shader& shader, const Cow& cow) const
 
 void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
 {
-    const float gait = std::sin(calf.animationTime * 10.0f) * 36.0f;
-    const float bob = std::abs(std::sin(calf.animationTime * 10.0f)) * 0.075f;
+    const bool feeding = calf.routeState == Calf::RouteState::Feeding;
+    const bool stationary = feeding || calf.routeState == Calf::RouteState::Sheltered;
+    const float gait = stationary ? 0.0f
+                                  : std::sin(calf.animationTime * 10.0f) * 36.0f;
+    const float bob = stationary ? 0.0f
+                                 : std::abs(std::sin(calf.animationTime * 10.0f)) * 0.075f;
     const float tail = std::sin(calf.animationTime * 6.0f) * 24.0f;
+    const float headDrop = feeding
+        ? 50.0f + std::sin(calf.animationTime * 1.8f) * 4.0f : 0.0f;
     drawBovine(shader, makeRoot(calf.position, calf.yaw, calf.scale),
-                calf.bodyColor, calf.patchColor, gait, 0.0f,
+                calf.bodyColor, calf.patchColor, gait, headDrop,
                 std::sin(calf.animationTime * 2.0f) * 4.0f,
                 tail, bob, 0.0f, true, false, false);
 }

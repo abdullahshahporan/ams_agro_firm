@@ -29,12 +29,23 @@ Glyph glyphFor(char character)
     switch (character)
     {
     case 'A': return {"01110", "10001", "10001", "11111", "10001", "10001", "10001"};
+    case 'C': return {"01111", "10000", "10000", "10000", "10000", "10000", "01111"};
+    case 'D': return {"11110", "10001", "10001", "10001", "10001", "10001", "11110"};
+    case 'E': return {"11111", "10000", "10000", "11110", "10000", "10000", "11111"};
     case 'F': return {"11111", "10000", "10000", "11110", "10000", "10000", "10000"};
     case 'G': return {"01110", "10001", "10000", "10111", "10001", "10001", "01110"};
+    case 'H': return {"10001", "10001", "10001", "11111", "10001", "10001", "10001"};
+    case 'L': return {"10000", "10000", "10000", "10000", "10000", "10000", "11111"};
     case 'M': return {"10001", "11011", "10101", "10101", "10001", "10001", "10001"};
+    case 'N': return {"10001", "11001", "11001", "10101", "10011", "10011", "10001"};
     case 'O': return {"01110", "10001", "10001", "10001", "10001", "10001", "01110"};
+    case 'P': return {"11110", "10001", "10001", "11110", "10000", "10000", "10000"};
     case 'R': return {"11110", "10001", "10001", "11110", "10100", "10010", "10001"};
     case 'S': return {"01111", "10000", "10000", "01110", "00001", "00001", "11110"};
+    case 'U': return {"10001", "10001", "10001", "10001", "10001", "10001", "01110"};
+    case 'W': return {"10001", "10001", "10001", "10101", "10101", "11011", "10001"};
+    case ':': return {"00000", "00100", "00100", "00000", "00100", "00100", "00000"};
+    case '.': return {"00000", "00000", "00000", "00000", "00000", "00110", "00110"};
     default:  return {"00000", "00000", "00000", "00000", "00000", "00000", "00000"};
     }
 }
@@ -52,18 +63,22 @@ const std::array<glm::vec3, 4>& FarmScene::futureCowPositions()
 }
 
 void FarmScene::render(const Shader& shader, float gateAngleDegrees,
-                       float stallGateAngleDegrees, float fanAngleDegrees,
-                       float pointFixtureEmission, float spotlightFixtureEmission) const
+                       float stallGateAngleDegrees, float calfShedDoorAngleDegrees,
+                       float fanAngleDegrees,
+                       const std::array<float, 5>& pointFixtureEmissions,
+                       float fenceFixtureEmission, float spotlightFixtureEmission) const
 {
     applyMaterial(shader, Materials::grass());
     drawGround(shader);
     applyMaterial(shader, Materials::soil());
     drawRoad(shader);
     applyMaterial(shader, Materials::wood());
-    drawFarmBoundary(shader);
+    drawFarmBoundary(shader, fenceFixtureEmission);
     applyMaterial(shader, Materials::brick());
     drawEntrance(shader, gateAngleDegrees);
-    drawCowShed(shader);
+    drawBillboard(shader);
+    applyMaterial(shader, Materials::brick());
+    drawCowShed(shader, calfShedDoorAngleDegrees);
     drawBarn(shader);
     applyMaterial(shader, Materials::concrete());
     drawFeedingArea(shader);
@@ -78,7 +93,7 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees,
     drawWorkerHouse(shader);
     applyMaterial(shader, Materials::metal());
     drawShedFans(shader, fanAngleDegrees);
-    drawLightFixtures(shader, pointFixtureEmission, spotlightFixtureEmission);
+    drawLightFixtures(shader, pointFixtureEmissions, spotlightFixtureEmission);
     applyMaterial(shader, Materials::wood());
     drawFarmProps(shader);
 }
@@ -120,16 +135,17 @@ void FarmScene::drawRoad(const Shader& shader) const
         glm::vec2(3.0f, 1.0f));
 }
 
-void FarmScene::drawFarmBoundary(const Shader& shader) const
+void FarmScene::drawFarmBoundary(const Shader& shader, float lampEmission) const
 {
-    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, EntranceZ), glm::vec3(-4.75f, 0.0f, EntranceZ));
-    drawFenceRun(shader, glm::vec3(4.75f, 0.0f, EntranceZ), glm::vec3(18.0f, 0.0f, EntranceZ));
-    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, -18.0f), glm::vec3(-18.0f, 0.0f, EntranceZ));
-    drawFenceRun(shader, glm::vec3(18.0f, 0.0f, -18.0f), glm::vec3(18.0f, 0.0f, EntranceZ));
-    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, -18.0f), glm::vec3(18.0f, 0.0f, -18.0f));
+    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, EntranceZ), glm::vec3(-4.75f, 0.0f, EntranceZ), lampEmission);
+    drawFenceRun(shader, glm::vec3(4.75f, 0.0f, EntranceZ), glm::vec3(18.0f, 0.0f, EntranceZ), lampEmission);
+    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, -18.0f), glm::vec3(-18.0f, 0.0f, EntranceZ), lampEmission);
+    drawFenceRun(shader, glm::vec3(18.0f, 0.0f, -18.0f), glm::vec3(18.0f, 0.0f, EntranceZ), lampEmission);
+    drawFenceRun(shader, glm::vec3(-18.0f, 0.0f, -18.0f), glm::vec3(18.0f, 0.0f, -18.0f), lampEmission);
 }
 
-void FarmScene::drawFenceRun(const Shader& shader, const glm::vec3& start, const glm::vec3& end) const
+void FarmScene::drawFenceRun(const Shader& shader, const glm::vec3& start,
+                             const glm::vec3& end, float lampEmission) const
 {
     const glm::vec3 difference = end - start;
     const float length = glm::length(difference);
@@ -155,6 +171,14 @@ void FarmScene::drawFenceRun(const Shader& shader, const glm::vec3& start, const
             glm::vec3(0.31f, 0.16f, 0.31f),
             textures_.wood,
             glm::vec3(0.72f, 0.60f, 0.45f));
+
+        Material globeMaterial = Materials::metal();
+        globeMaterial.emission = glm::vec3(1.0f, 0.80f, 0.43f) * (lampEmission * 0.72f);
+        applyMaterial(shader, globeMaterial);
+        primitives_.drawSphere(shader, glm::mat4(1.0f),
+                               glm::vec3(point.x, 2.08f, point.z),
+                               glm::vec3(0.34f), glm::vec3(1.0f, 0.84f, 0.55f));
+        applyMaterial(shader, Materials::wood());
     }
 
     for (int i = 0; i < sectionCount; ++i)
@@ -234,12 +258,63 @@ void FarmScene::drawFarmSign(const Shader& shader) const
     drawBlockText(shader, "AMS AGRO FARM", glm::vec3(0.0f, 4.72f, EntranceZ + 0.245f));
 }
 
-void FarmScene::drawBlockText(const Shader& shader, const char* text, const glm::vec3& center) const
+void FarmScene::drawBillboard(const Shader& shader) const
 {
-    constexpr float step = 0.082f;
-    constexpr float size = 0.074f;
-    constexpr float advance = 6.0f * step;
-    constexpr float space = 3.0f * step;
+    const glm::vec3 center(-10.0f, 3.45f, 10.7f);
+    constexpr float halfWidth = 5.25f;
+    constexpr float curveDepth = 0.42f;
+    constexpr int panelCount = 9;
+    constexpr float panelWidth = (halfWidth * 2.0f) / panelCount;
+    applyMaterial(shader, Materials::wood());
+    for (float x : {-14.05f, -5.95f})
+    {
+        cubes_.drawTextured(shader, glm::vec3(x, 2.05f, center.z),
+                            glm::vec3(0.30f, 4.10f, 0.30f), textures_.wood,
+                            glm::vec3(0.62f, 0.42f, 0.22f), glm::vec2(0.7f, 4.0f));
+        cubes_.drawTextured(shader, glm::vec3(x, 0.20f, center.z),
+                            glm::vec3(0.70f, 0.24f, 0.70f), textures_.concrete,
+                            ConcreteTint);
+    }
+    // Nine tangent-aligned panels form a gentle convex billboard. The shallow
+    // curve keeps both text lines readable from the entrance and side angles.
+    for (int panel = 0; panel < panelCount; ++panel)
+    {
+        const float localX = -halfWidth +
+            (static_cast<float>(panel) + 0.5f) * panelWidth;
+        const float normalized = localX / halfWidth;
+        const float localZ = curveDepth * (1.0f - normalized * normalized);
+        const float slope = -2.0f * curveDepth * localX / (halfWidth * halfWidth);
+        const float angle = -glm::degrees(std::atan(slope));
+        const glm::vec3 panelCenter = center + glm::vec3(localX, 0.0f, localZ);
+
+        cubes_.drawTextured(shader, panelCenter,
+                            glm::vec3(panelWidth + 0.035f, 3.10f, 0.30f),
+                            textures_.wood, glm::vec3(0.34f, 0.22f, 0.12f),
+                            glm::vec2(1.0f, 2.0f), angle,
+                            glm::vec3(0.0f, 1.0f, 0.0f));
+        for (float yOffset : {-1.48f, 1.48f})
+            cubes_.drawTextured(shader,
+                                panelCenter + glm::vec3(0.0f, yOffset, 0.0f),
+                                glm::vec3(panelWidth + 0.04f, 0.14f, 0.36f),
+                                textures_.wood, glm::vec3(0.64f, 0.43f, 0.20f),
+                                glm::vec2(1.0f), angle,
+                                glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    drawCurvedBlockText(shader, "AMS AGRO FARM",
+                        center + glm::vec3(0.0f, 0.62f, 0.0f), 1.20f,
+                        halfWidth, curveDepth, 0.65f);
+    drawCurvedBlockText(shader, "OWNSER: MD. SHAHPORAN",
+                        center + glm::vec3(0.0f, -0.58f, 0.0f), 0.72f,
+                        halfWidth, curveDepth, 0.65f);
+}
+
+void FarmScene::drawBlockText(const Shader& shader, const char* text,
+                              const glm::vec3& center, float scale) const
+{
+    const float step = 0.082f * scale;
+    const float size = 0.074f * scale;
+    const float advance = 6.0f * step;
+    const float space = 3.0f * step;
     float width = 0.0f;
     for (const char* cursor = text; *cursor; ++cursor)
         width += (*cursor == ' ') ? space : advance;
@@ -256,19 +331,82 @@ void FarmScene::drawBlockText(const Shader& shader, const char* text, const glm:
         for (int row = 0; row < 7; ++row)
             for (int column = 0; column < 5; ++column)
                 if (glyph[row][column] == '1')
-                    cubes_.drawColored(shader, glm::vec3(penX + column * step, center.y + (3.0f - row) * step, center.z), glm::vec3(size, size, 0.055f), glm::vec3(1.0f, 0.86f, 0.34f));
+                    cubes_.drawColored(shader,
+                                       glm::vec3(penX + column * step,
+                                                 center.y + (3.0f - row) * step,
+                                                 center.z),
+                                       glm::vec3(size, size, 0.055f),
+                                       glm::vec3(1.0f, 0.86f, 0.34f));
         penX += advance;
     }
 }
 
-void FarmScene::drawCowShed(const Shader& shader) const
+void FarmScene::drawCurvedBlockText(const Shader& shader, const char* text,
+                                    const glm::vec3& center, float scale,
+                                    float halfWidth, float curveDepth,
+                                    float xOffset) const
+{
+    const float step = 0.082f * scale;
+    const float size = 0.074f * scale;
+    const float advance = 6.0f * step;
+    const float space = 3.0f * step;
+    float width = 0.0f;
+    for (const char* cursor = text; *cursor; ++cursor)
+        width += (*cursor == ' ') ? space : advance;
+
+    float penX = center.x - width * 0.5f + xOffset;
+    for (const char* cursor = text; *cursor; ++cursor)
+    {
+        if (*cursor == ' ')
+        {
+            penX += space;
+            continue;
+        }
+        const Glyph glyph = glyphFor(*cursor);
+        for (int row = 0; row < 7; ++row)
+        {
+            for (int column = 0; column < 5; ++column)
+            {
+                if (glyph[row][column] != '1')
+                    continue;
+                const float x = penX + column * step;
+                const float localX = glm::clamp(x - center.x, -halfWidth, halfWidth);
+                const float normalized = localX / halfWidth;
+                const float z = center.z + curveDepth *
+                    (1.0f - normalized * normalized) + 0.19f;
+                const float slope = -2.0f * curveDepth * localX /
+                                    (halfWidth * halfWidth);
+                const float angle = -glm::degrees(std::atan(slope));
+                cubes_.drawColored(shader,
+                                   glm::vec3(x, center.y + (3.0f - row) * step, z),
+                                   glm::vec3(size, size, 0.055f),
+                                   glm::vec3(1.0f, 0.86f, 0.34f), angle,
+                                   glm::vec3(0.0f, 1.0f, 0.0f));
+            }
+        }
+        penX += advance;
+    }
+}
+
+void FarmScene::drawCowShed(const Shader& shader, float calfShedDoorAngleDegrees) const
 {
     const glm::vec3 origin(-10.0f, 0.0f, -8.0f);
 
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.09f, 0.0f), glm::vec3(8.2f, 0.18f, 7.0f), textures_.concrete, ConcreteTint, glm::vec2(5.0f, 4.0f));
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 1.55f, -3.18f), glm::vec3(7.5f, 3.0f, 0.24f), textures_.brick, BrickTint, glm::vec2(5.0f, 2.5f));
     cubes_.drawTextured(shader, origin + glm::vec3(-3.78f, 1.0f, -1.7f), glm::vec3(0.24f, 1.8f, 2.8f), textures_.brick, BrickTint, glm::vec2(2.0f, 2.0f));
-    cubes_.drawTextured(shader, origin + glm::vec3(3.78f, 1.0f, -1.7f), glm::vec3(0.24f, 1.8f, 2.8f), textures_.brick, BrickTint, glm::vec2(2.0f, 2.0f));
+    // Split the ox-side wall around a real calf doorway instead of allowing
+    // calves to pass through the concrete feed boxes at the shed front.
+    cubes_.drawTextured(shader, glm::vec3(-6.22f, 1.0f, -10.72f),
+                        glm::vec3(0.24f, 1.8f, 0.92f), textures_.brick,
+                        BrickTint, glm::vec2(1.0f, 2.0f));
+    cubes_.drawTextured(shader, glm::vec3(-6.22f, 1.0f, -8.58f),
+                        glm::vec3(0.24f, 1.8f, 0.84f), textures_.brick,
+                        BrickTint, glm::vec2(1.0f, 2.0f));
+    cubes_.drawTextured(shader, glm::vec3(-6.22f, 2.05f, -9.64f),
+                        glm::vec3(0.24f, 0.34f, 3.05f), textures_.brick,
+                        BrickTint, glm::vec2(3.0f, 1.0f));
+    drawCalfShedSideDoor(shader, calfShedDoorAngleDegrees);
 
     for (const float x : {-3.65f, 0.0f, 3.65f})
         for (const float z : {-3.0f, 3.0f})
@@ -281,6 +419,29 @@ void FarmScene::drawCowShed(const Shader& shader) const
 
     // Module 5 draws one sampled ruled-surface roof here. The old overlapping
     // planar roof halves were intentionally removed.
+}
+
+void FarmScene::drawCalfShedSideDoor(const Shader& shader, float angleDegrees) const
+{
+    constexpr float width = 1.24f;
+    glm::mat4 parent(1.0f);
+    parent = glm::translate(parent, glm::vec3(-6.06f, 0.0f, -10.24f));
+    parent = glm::rotate(parent, glm::radians(angleDegrees),
+                         glm::vec3(0.0f, 1.0f, 0.0f));
+
+    applyMaterial(shader, Materials::wood());
+    cubes_.drawTextured(shader, parent, glm::vec3(0.0f, 0.94f, width * 0.5f),
+                        glm::vec3(0.14f, 1.76f, width), textures_.wood,
+                        glm::vec3(0.60f, 0.39f, 0.18f), glm::vec2(2.0f, 2.0f));
+    for (float y : {0.28f, 0.94f, 1.60f})
+        cubes_.drawTextured(shader, parent,
+                            glm::vec3(-0.09f, y, width * 0.5f),
+                            glm::vec3(0.10f, 0.10f, width), textures_.metal,
+                            DarkMetal);
+    cubes_.drawColored(shader, parent, glm::vec3(-0.13f, 0.92f, width - 0.14f),
+                       glm::vec3(0.10f, 0.17f, 0.10f),
+                       glm::vec3(0.82f, 0.64f, 0.20f));
+    applyMaterial(shader, Materials::brick());
 }
 
 void FarmScene::drawBarn(const Shader& shader) const
@@ -366,6 +527,22 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader, float stallGateAngleDe
         }
     }
 
+    // Two small fodder mats sit inside the ox-side calf lane. N routes the
+    // calves through the side door to these positions and lowers their heads.
+    for (const float zCenter : {-10.98f, -9.43f})
+    {
+        cubes_.drawTextured(shader, glm::vec3(-6.78f, 0.18f, zCenter),
+                            glm::vec3(0.72f, 0.14f, 0.56f), textures_.hay,
+                            glm::vec3(0.28f, 0.70f, 0.16f));
+        for (int strip = -1; strip <= 1; ++strip)
+            cubes_.drawColored(shader,
+                               glm::vec3(-6.78f + strip * 0.20f, 0.29f, zCenter),
+                               glm::vec3(0.05f, 0.24f, 0.05f),
+                               glm::vec3(0.20f, 0.58f, 0.12f),
+                               static_cast<float>(strip) * 12.0f,
+                               glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+
     applyMaterial(shader, Materials::wood());
     drawStallGate(shader, glm::vec3(-14.0f, 0.0f, -9.65f), stallGateAngleDegrees);
     drawStallGate(shader, glm::vec3(-10.0f, 0.0f, -9.65f), stallGateAngleDegrees);
@@ -411,8 +588,8 @@ void FarmScene::drawTrees(const Shader& shader) const
 {
     const std::array<std::pair<glm::vec3, float>, 8> trees = {{
         {glm::vec3(-15.8f, 0.0f, -14.5f), 1.05f},
-        {glm::vec3(-15.7f, 0.0f,  7.5f), 0.90f},
-        {glm::vec3(-14.2f, 0.0f, 13.0f), 0.82f},
+        {glm::vec3(-16.4f, 0.0f,  7.2f), 0.90f},
+        {glm::vec3(-16.6f, 0.0f, 13.0f), 0.82f},
         {glm::vec3( 15.8f, 0.0f,-15.4f), 1.00f},
         {glm::vec3( 16.0f, 0.0f,  6.0f), 0.90f},
         {glm::vec3( 13.6f, 0.0f, 12.5f), 0.78f},
@@ -490,7 +667,8 @@ void FarmScene::drawPoultryShed(const Shader& shader) const
 
 void FarmScene::drawWorkerHouse(const Shader& shader) const
 {
-    const glm::vec3 origin(4.0f, 0.0f, 12.0f);
+    // Kept clear of the right entrance leaf's full 90-degree swing envelope.
+    const glm::vec3 origin(8.0f, 0.0f, 12.0f);
     applyMaterial(shader, Materials::brick());
     cubes_.drawTextured(shader, origin + glm::vec3(0.0f, 0.10f, 0.0f),
                         glm::vec3(3.5f, 0.20f, 3.2f), textures_.concrete,
@@ -541,25 +719,48 @@ void FarmScene::drawFan(const Shader& shader, const glm::vec3& position, float p
     cubes_.drawTextured(shader, rotor, glm::vec3(0.0f, 0.0f, -1.05f), glm::vec3(0.38f, 0.10f, 1.85f), textures_.metal, DarkMetal);
 }
 
-void FarmScene::drawLightFixtures(const Shader& shader, float pointEmission,
+void FarmScene::drawLightFixtures(const Shader& shader,
+                                  const std::array<float, 5>& pointEmissions,
                                   float spotlightEmission) const
 {
     const glm::vec3 warmBulb(1.0f, 0.78f, 0.40f);
     applyMaterial(shader, Materials::metal());
-    for (const glm::vec3& position : LightingSystem::pointLightPositions())
+    const auto& positions = LightingSystem::pointLightPositions();
+    for (std::size_t index = 0; index < positions.size(); ++index)
     {
-        cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.30f, 0.0f),
-                            glm::vec3(0.09f, 0.58f, 0.09f),
-                            textures_.metal, glm::vec3(0.55f));
-        cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.07f, 0.0f),
-                            glm::vec3(0.56f, 0.18f, 0.56f),
-                            textures_.metal, DarkMetal);
+        const glm::vec3 position = positions[index];
+        const bool signLight = index >= 3;
+        if (signLight)
+        {
+            // Short wall bracket projects the bulb in front of the sign so
+            // the front-facing text receives real diffuse/specular lighting.
+            cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.18f, -0.34f),
+                                glm::vec3(0.10f, 0.10f, 0.72f), textures_.metal,
+                                DarkMetal);
+            cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.04f, 0.0f),
+                                glm::vec3(0.62f, 0.16f, 0.62f), textures_.metal,
+                                DarkMetal);
+        }
+        else
+        {
+            cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.30f, 0.0f),
+                                glm::vec3(0.09f, 0.58f, 0.09f),
+                                textures_.metal, glm::vec3(0.55f));
+            cubes_.drawTextured(shader, position + glm::vec3(0.0f, 0.07f, 0.0f),
+                                glm::vec3(0.56f, 0.18f, 0.56f),
+                                textures_.metal, DarkMetal);
+        }
 
         Material bulbMaterial = Materials::metal();
-        bulbMaterial.emission = warmBulb * pointEmission;
+        bulbMaterial.emission = warmBulb * pointEmissions[index];
         applyMaterial(shader, bulbMaterial);
-        cubes_.drawColored(shader, position + glm::vec3(0.0f, -0.12f, 0.0f),
-                           glm::vec3(0.34f, 0.24f, 0.34f), warmBulb);
+        if (signLight)
+            primitives_.drawSphere(shader, glm::mat4(1.0f),
+                                   position + glm::vec3(0.0f, -0.12f, 0.0f),
+                                   glm::vec3(0.34f), warmBulb);
+        else
+            cubes_.drawColored(shader, position + glm::vec3(0.0f, -0.12f, 0.0f),
+                               glm::vec3(0.34f, 0.24f, 0.34f), warmBulb);
         applyMaterial(shader, Materials::metal());
     }
 
@@ -582,9 +783,10 @@ void FarmScene::drawFarmProps(const Shader& shader) const
     drawCrate(shader, glm::vec3(7.1f, 0.55f, -7.3f), -7.0f);
     drawCrate(shader, glm::vec3(8.5f, 0.55f, -7.0f), 5.0f);
     drawCrate(shader, glm::vec3(7.8f, 1.62f, -7.2f), 2.0f);
-    drawFeedSack(shader, glm::vec3(10.0f, 0.55f, -7.2f), -8.0f);
-    drawFeedSack(shader, glm::vec3(11.0f, 0.55f, -7.1f), 7.0f);
-    drawFeedSack(shader, glm::vec3(10.5f, 1.45f, -7.15f), 1.0f);
+    // Keep the barn doorway visually organized and its center lane unobstructed.
+    drawFeedSack(shader, glm::vec3(12.95f, 0.55f, -7.15f), -8.0f);
+    drawFeedSack(shader, glm::vec3(13.90f, 0.55f, -7.10f), 7.0f);
+    drawFeedSack(shader, glm::vec3(13.42f, 1.45f, -7.12f), 1.0f);
 
     // Tool rack near the barn and an empty collection pad reserved for Module 5.
     cubes_.drawTextured(shader, glm::vec3(15.2f, 1.2f, -6.9f), glm::vec3(0.18f, 2.4f, 0.18f), textures_.wood, WarmWood);

@@ -19,19 +19,21 @@ AnimationSystem::AnimationSystem()
            true, glm::vec3(-8.0f, 1.05f, -6.10f), CattleRole::Ox}
       }},
       calves_{{
-          {glm::vec3(0.0f), 0.0f, 0.60f, 1.85f, 0.0f, 0.25f,
+          {glm::vec3(-6.75f, 0.0f, -10.30f), 90.0f, 0.60f, 1.85f, 0.0f, 0.25f,
            glm::vec3(3.0f, 0.0f, -7.0f), glm::vec2(3.0f, 1.8f), 1.0f,
            glm::vec3(0.78f, 0.48f, 0.24f), glm::vec3(0.96f, 0.84f, 0.64f),
-           glm::vec3(-11.0f, 0.0f, -9.65f), Calf::RouteState::Roaming},
-          {glm::vec3(0.0f), 0.0f, 0.54f, 2.15f, 0.0f, 3.40f,
+           glm::vec3(-6.75f, 0.0f, -10.30f), glm::vec3(-6.75f, 0.0f, -10.05f),
+           Calf::RouteState::Sheltered},
+          {glm::vec3(-6.75f, 0.0f, -8.45f), 90.0f, 0.54f, 2.15f, 0.0f, 3.40f,
            glm::vec3(3.2f, 0.0f, 0.0f), glm::vec2(1.8f, 1.15f), -1.0f,
            glm::vec3(0.86f, 0.84f, 0.76f), glm::vec3(0.12f, 0.10f, 0.08f),
-           glm::vec3(-9.0f, 0.0f, -9.65f), Calf::RouteState::Roaming}
+           glm::vec3(-6.75f, 0.0f, -8.45f), glm::vec3(-6.75f, 0.0f, -8.45f),
+           Calf::RouteState::Sheltered}
       }},
       workers_{{
-          {glm::vec3(4.0f, 0.0f, 10.25f), 90.0f, WorkerState::HomeIdle,
+          {glm::vec3(8.0f, 0.0f, 10.25f), 90.0f, WorkerState::HomeIdle,
            2.00f, 0.0f, 0.0f,
-           glm::vec3(4.0f, 0.0f, 10.25f), glm::vec3(-10.0f, 0.0f, -4.15f), true,
+           glm::vec3(8.0f, 0.0f, 10.25f), glm::vec3(-10.0f, 0.0f, -4.15f), true,
            glm::vec3(0.12f, 0.42f, 0.72f)}
       }},
       birds_{{
@@ -51,8 +53,6 @@ AnimationSystem::AnimationSystem()
            glm::vec3(0.0f), glm::vec2(0.0f), 0.0f, 1.0f, 0.0f, 0.20f, -20.0f, 0.0f, false, true, glm::vec3(0.98f,0.86f,0.24f), Calf::RouteState::Sheltered}
       }}
 {
-    for (Calf& calf : calves_)
-        updateCalfPath(calf, 0.0f);
     for (Bird& bird : birds_)
         if (bird.mobile)
             updateBirdPath(bird, 0.0f);
@@ -90,11 +90,14 @@ void AnimationSystem::update(float deltaTime)
                 updateCalfPath(calf, deltaTime);
             }
             else if (calf.routeState == Calf::RouteState::GoingToShelter ||
-                     calf.routeState == Calf::RouteState::GoingToField)
+                     calf.routeState == Calf::RouteState::GoingToField ||
+                     calf.routeState == Calf::RouteState::GoingToFeed)
             {
                 calf.animationTime += deltaTime;
-                updateCalfNavigation(calf, deltaTime, shelterRequested_);
+                updateCalfNavigation(calf, deltaTime, calfDestination_);
             }
+            else if (calf.routeState == Calf::RouteState::Feeding)
+                calf.animationTime += deltaTime;
         }
         for (Bird& bird : birds_)
         {
@@ -137,6 +140,7 @@ void AnimationSystem::setNightMode(bool nightMode)
     nightMode_ = nightMode;
     if (nightMode_)
     {
+        calfDestination_ = CalfDestination::Home;
         for (Calf& calf : calves_)
         {
             calf.position = calf.shelterPosition;
@@ -153,9 +157,10 @@ void AnimationSystem::setNightMode(bool nightMode)
     }
     else
     {
+        // Calves remain safely beside the ox until J or L explicitly releases them.
+        calfDestination_ = CalfDestination::Home;
         for (Calf& calf : calves_)
-            calf.routeState = shelterRequested_
-                ? Calf::RouteState::Sheltered : Calf::RouteState::GoingToField;
+            calf.routeState = Calf::RouteState::Sheltered;
         for (Bird& bird : birds_)
             if (bird.mobile)
                 bird.routeState = shelterRequested_
@@ -168,13 +173,67 @@ void AnimationSystem::toggleAnimalShelter()
     if (nightMode_)
         return;
     shelterRequested_ = !shelterRequested_;
+    calfDestination_ = shelterRequested_ ? CalfDestination::Home
+                                         : CalfDestination::Field;
     for (Calf& calf : calves_)
         calf.routeState = shelterRequested_
             ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
     for (Bird& bird : birds_)
         if (bird.mobile)
-            bird.routeState = shelterRequested_
-                ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
+                bird.routeState = shelterRequested_
+                    ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
+}
+
+void AnimationSystem::toggleCalfShed()
+{
+    if (nightMode_)
+        return;
+
+    calfDestination_ = (calfDestination_ == CalfDestination::Home)
+        ? CalfDestination::Field : CalfDestination::Home;
+    for (Calf& calf : calves_)
+        calf.routeState = calfDestination_ == CalfDestination::Home
+            ? Calf::RouteState::GoingToShelter : Calf::RouteState::GoingToField;
+}
+
+void AnimationSystem::sendCalvesToFeed()
+{
+    if (nightMode_)
+        return;
+
+    calfDestination_ = CalfDestination::FeedingArea;
+    for (Calf& calf : calves_)
+        calf.routeState = Calf::RouteState::GoingToFeed;
+}
+
+bool AnimationSystem::calfShedDoorNeeded() const
+{
+    for (const Calf& calf : calves_)
+    {
+        // Keep the door open only while a calf is inside or crossing the
+        // doorway envelope; close it once both animals have cleared the wall.
+        if (calf.routeState == Calf::RouteState::GoingToField &&
+            calf.position.x < -5.05f)
+            return true;
+        if ((calf.routeState == Calf::RouteState::GoingToShelter ||
+             calf.routeState == Calf::RouteState::GoingToFeed) &&
+            calf.position.x > -6.75f)
+            return true;
+    }
+    return false;
+}
+
+const char* AnimationSystem::calfStatus() const
+{
+    if (nightMode_)
+        return "inside the cattle shed beside the ox (night routine)";
+    switch (calfDestination_)
+    {
+    case CalfDestination::Home: return "returning/staying inside the cattle shed";
+    case CalfDestination::Field: return "leaving the ox-side door for the field";
+    case CalfDestination::FeedingArea: return "entering the ox-side door to feed";
+    }
+    return "unknown";
 }
 
 void AnimationSystem::commandWorker()
@@ -256,21 +315,64 @@ void AnimationSystem::updateCalfPath(Calf& calf, float deltaTime)
 }
 
 void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
-                                            bool shelterRequested)
+                                            CalfDestination destination)
 {
-    if (shelterRequested && calf.routeState != Calf::RouteState::GoingToShelter)
-        calf.routeState = Calf::RouteState::GoingToShelter;
-    if (!shelterRequested && calf.routeState != Calf::RouteState::GoingToField)
-        calf.routeState = Calf::RouteState::GoingToField;
+    const bool insideShed = calf.position.x < -6.35f &&
+                            calf.position.z > -11.25f && calf.position.z < -7.75f;
+    const glm::vec3 outsideDoor(-5.20f, 0.0f, -9.62f);
+    const glm::vec3 insideDoor(-6.70f, 0.0f, -9.62f);
+    glm::vec3 target;
+    bool finalTarget = false;
 
-    glm::vec3 target = calf.shelterPosition;
-    if (!shelterRequested)
+    if (destination == CalfDestination::Home)
+    {
+        target = insideShed ? calf.shelterPosition : insideDoor;
+        finalTarget = insideShed;
+    }
+    else if (destination == CalfDestination::Field && insideShed)
+    {
+        // First align with the opening from either internal stall, then cross
+        // the wall. This prevents the nearer calf from clipping a brick edge.
+        target = std::abs(calf.position.z - insideDoor.z) > 0.045f
+            ? insideDoor : outsideDoor;
+    }
+    else if (destination == CalfDestination::FeedingArea)
+    {
+        // Feeding is inside the cattle shed. From the field, approach the
+        // opening in the ox-side wall instead of climbing through a trough.
+        if (!insideShed)
+            target = insideDoor;
+        else
+        {
+            target = calf.feedingPosition;
+            finalTarget = true;
+        }
+    }
+    else
+    {
         target = calf.pathCenter + glm::vec3(calf.pathRadius.x * std::cos(calf.pathAngle),
                                              0.0f,
                                              calf.pathRadius.y * std::sin(calf.pathAngle));
+        finalTarget = true;
+    }
+
     if (moveToward(calf.position, calf.yaw, target, calf.speed, deltaTime))
-        calf.routeState = shelterRequested
-            ? Calf::RouteState::Sheltered : Calf::RouteState::Roaming;
+    {
+        if (!finalTarget)
+            return;
+        if (destination == CalfDestination::Home)
+        {
+            calf.routeState = Calf::RouteState::Sheltered;
+            calf.yaw = 90.0f;
+        }
+        else if (destination == CalfDestination::Field)
+            calf.routeState = Calf::RouteState::Roaming;
+        else if (destination == CalfDestination::FeedingArea)
+        {
+            calf.routeState = Calf::RouteState::Feeding;
+            calf.yaw = 90.0f;
+        }
+    }
 }
 
 void AnimationSystem::updateWorker(Worker& worker, float deltaTime)
