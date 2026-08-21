@@ -187,60 +187,151 @@ void EntityRenderer::drawBovine(
     float tailAngle, float bodyBob, float hornScale, bool juvenile,
     bool showUdder, bool ox) const
 {
-    const glm::vec3 darkLeg = bodyColor * 0.66f;
-    const float bodyY = juvenile ? 1.20f : 1.38f;
+    const bool milchCow = showUdder && !juvenile;
+    const bool adultOx = ox && !juvenile;
+    const glm::vec3 darkLeg = adultOx ? bodyColor * 0.74f : bodyColor * 0.88f;
+    const float bodyY = juvenile ? 1.20f : (adultOx ? 1.48f : 1.40f);
     const glm::vec3 bodySize = juvenile
         ? glm::vec3(2.75f, 1.42f, 1.20f)
-        : glm::vec3(3.15f, 1.55f, 1.34f);
+        : (adultOx ? glm::vec3(3.48f, 1.72f, 1.48f)
+                   : glm::vec3(3.38f, 1.62f, 1.38f));
     glm::mat4 bobRoot = glm::translate(root, glm::vec3(0.0f, bodyBob, 0.0f));
 
     primitives_.drawSphere(shader, bobRoot, glm::vec3(0.0f, bodyY, 0.0f),
                            bodySize, bodyColor);
-    if (ox)
-        primitives_.drawSphere(shader, bobRoot, glm::vec3(0.72f, bodyY + 0.55f, 0.0f),
-                               glm::vec3(0.88f, 0.62f, 1.00f), bodyColor * 0.88f);
-    primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.35f, bodyY + 0.10f, 0.665f),
-                           glm::vec3(0.88f, 0.65f, 0.07f), patchColor, 14.0f,
-                           glm::vec3(0.0f, 0.0f, 1.0f));
-    primitives_.drawSphere(shader, bobRoot, glm::vec3(0.62f, bodyY - 0.20f, -0.665f),
-                           glm::vec3(0.68f, 0.52f, 0.07f), patchColor, -18.0f,
-                           glm::vec3(0.0f, 0.0f, 1.0f));
 
-    const float hipY = juvenile ? 1.05f : 1.25f;
-    const float foreX = juvenile ? 0.82f : 1.02f;
-    const float rearX = juvenile ? -0.82f : -1.02f;
-    const float hipZ = juvenile ? 0.38f : 0.43f;
+    if (adultOx)
+    {
+        // Brahman-type ox: muscular shoulder, high hump and loose dewlap.
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(0.76f, bodyY + 0.62f, 0.0f),
+                               glm::vec3(1.18f, 0.86f, 1.30f), bodyColor * 1.03f);
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(1.18f, bodyY + 0.03f, 0.0f),
+                               glm::vec3(1.14f, 1.42f, 1.36f), bodyColor * 0.96f);
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(1.02f, bodyY - 0.70f, 0.0f),
+                               glm::vec3(1.34f, 0.82f, 0.22f), bodyColor * 0.82f,
+                               -12.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(1.38f, bodyY - 0.86f, 0.0f),
+                               glm::vec3(0.72f, 0.58f, 0.18f), bodyColor * 0.76f,
+                               -18.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    }
+    else if (milchCow)
+    {
+        // Irregular Holstein markings are layered on both flanks instead of a
+        // single stripe, keeping the white dairy-cow body clearly readable.
+        for (float side : {-1.0f, 1.0f})
+        {
+            const float surface = side * 0.688f;
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(-1.02f, bodyY + 0.16f, surface),
+                                   glm::vec3(0.82f, 0.74f, 0.075f), patchColor,
+                                   side * 19.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(-0.77f, bodyY + 0.43f, surface * 1.002f),
+                                   glm::vec3(0.46f, 0.42f, 0.078f), patchColor,
+                                   side * -16.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(-0.12f, bodyY - 0.12f, surface),
+                                   glm::vec3(1.10f, 0.88f, 0.078f), patchColor,
+                                   side * -13.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(0.17f, bodyY - 0.39f, surface * 1.003f),
+                                   glm::vec3(0.58f, 0.40f, 0.080f), patchColor,
+                                   side * 21.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(0.82f, bodyY + 0.24f, surface),
+                                   glm::vec3(0.76f, 0.68f, 0.076f), patchColor,
+                                   side * 24.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(1.06f, bodyY + 0.03f, surface * 1.002f),
+                                   glm::vec3(0.46f, 0.48f, 0.079f), patchColor,
+                                   side * -22.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+            primitives_.drawSphere(shader, bobRoot,
+                                   glm::vec3(1.36f, bodyY - 0.18f, side * 0.54f),
+                                   glm::vec3(0.48f, 0.56f, 0.30f), patchColor);
+        }
+        primitives_.drawSphere(shader, bobRoot,
+                               glm::vec3(-0.48f, bodyY + 0.80f, 0.16f),
+                               glm::vec3(0.96f, 0.075f, 0.66f), patchColor,
+                               11.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    else
+    {
+        // The two calves retain a simpler two-patch coat.
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.35f, bodyY + 0.10f, 0.595f),
+                               glm::vec3(0.88f, 0.65f, 0.07f), patchColor, 14.0f,
+                               glm::vec3(0.0f, 0.0f, 1.0f));
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(0.62f, bodyY - 0.20f, -0.595f),
+                               glm::vec3(0.68f, 0.52f, 0.07f), patchColor, -18.0f,
+                               glm::vec3(0.0f, 0.0f, 1.0f));
+    }
+
+    const float hipY = juvenile ? 1.05f : (adultOx ? 1.32f : 1.25f);
+    const float foreX = juvenile ? 0.82f : (adultOx ? 1.16f : 1.08f);
+    const float rearX = juvenile ? -0.82f : (adultOx ? -1.16f : -1.08f);
+    const float hipZ = juvenile ? 0.38f : (adultOx ? 0.50f : 0.45f);
     drawBovineLeg(shader, bobRoot, glm::vec3(foreX, hipY, hipZ), gaitAngle, darkLeg, juvenile);
     drawBovineLeg(shader, bobRoot, glm::vec3(foreX, hipY, -hipZ), -gaitAngle, darkLeg, juvenile);
     drawBovineLeg(shader, bobRoot, glm::vec3(rearX, hipY, hipZ), -gaitAngle, darkLeg, juvenile);
     drawBovineLeg(shader, bobRoot, glm::vec3(rearX, hipY, -hipZ), gaitAngle, darkLeg, juvenile);
 
-    glm::mat4 neck = glm::translate(bobRoot, glm::vec3(1.18f, bodyY + 0.12f, 0.0f));
+    glm::mat4 neck = glm::translate(bobRoot,
+                                    glm::vec3(adultOx ? 1.34f : 1.22f,
+                                              bodyY + (adultOx ? 0.10f : 0.12f), 0.0f));
     neck = glm::rotate(neck, glm::radians(-headDrop), glm::vec3(0.0f, 0.0f, 1.0f));
     neck = glm::rotate(neck, glm::radians(headTurn), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::vec3 headColor = milchCow ? patchColor
+                                         : (adultOx ? bodyColor * 0.88f : bodyColor);
     cubes_.drawColored(shader, neck, glm::vec3(0.18f, 0.0f, 0.0f),
-                       glm::vec3(0.55f, 0.68f, 0.74f), bodyColor, -18.0f,
+                       adultOx ? glm::vec3(0.72f, 0.88f, 0.92f)
+                               : glm::vec3(0.55f, 0.68f, 0.74f),
+                       headColor, -18.0f,
                        glm::vec3(0.0f, 0.0f, 1.0f));
-    const float headScale = juvenile ? 1.08f : 1.0f;
+    const float headScale = juvenile ? 1.08f : (adultOx ? 1.12f : 1.0f);
     primitives_.drawSphere(shader, neck, glm::vec3(0.68f, -0.04f, 0.0f),
-                           glm::vec3(1.05f, 0.82f, 0.82f) * headScale, bodyColor);
+                           glm::vec3(1.05f, 0.82f, 0.82f) * headScale, headColor);
     primitives_.drawSphere(shader, neck, glm::vec3(1.08f, -0.16f, 0.0f),
-                           glm::vec3(0.67f, 0.46f, 0.62f) * headScale,
-                           glm::vec3(0.72f, 0.50f, 0.40f));
+                           (adultOx ? glm::vec3(0.58f, 0.43f, 0.58f)
+                                    : glm::vec3(0.67f, 0.46f, 0.62f)) * headScale,
+                           adultOx ? glm::vec3(0.16f, 0.10f, 0.075f)
+                                   : glm::vec3(0.66f, 0.56f, 0.52f));
+
+    if (milchCow)
+    {
+        // White blaze down the otherwise black Holstein face.
+        primitives_.drawSphere(shader, neck, glm::vec3(1.145f, 0.13f, 0.0f),
+                               glm::vec3(0.075f, 0.58f, 0.32f), bodyColor);
+        primitives_.drawSphere(shader, neck, glm::vec3(0.73f, 0.36f, 0.0f),
+                               glm::vec3(0.64f, 0.075f, 0.36f), bodyColor);
+    }
 
     for (float side : {-1.0f, 1.0f})
     {
-        cubes_.drawColored(shader, neck, glm::vec3(0.56f, 0.28f, side * 0.46f),
-                           glm::vec3(0.32f, 0.10f, 0.27f), bodyColor,
-                           side * 18.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+        if (adultOx)
+            primitives_.drawSphere(shader, neck,
+                                   glm::vec3(0.46f, -0.01f, side * 0.68f),
+                                   glm::vec3(0.40f, 0.22f, 0.86f), bodyColor * 0.82f,
+                                   side * 40.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+        else
+            cubes_.drawColored(shader, neck, glm::vec3(0.56f, 0.28f, side * 0.46f),
+                               glm::vec3(0.34f, 0.10f, 0.32f),
+                               milchCow ? patchColor : bodyColor,
+                               side * 18.0f, glm::vec3(1.0f, 0.0f, 0.0f));
         primitives_.drawSphere(shader, neck, glm::vec3(0.98f, 0.02f, side * 0.30f),
                                glm::vec3(0.09f), glm::vec3(0.03f));
         if (!juvenile && hornScale > 0.0f)
             primitives_.drawCone(shader, neck,
                                  glm::vec3(0.66f, 0.47f, side * 0.27f),
-                                 glm::vec3(0.16f, 0.48f * hornScale, 0.16f),
+                                 adultOx ? glm::vec3(0.18f, 0.56f * hornScale, 0.18f)
+                                         : glm::vec3(0.15f, 0.42f * hornScale, 0.15f),
                                  glm::vec3(0.90f, 0.82f, 0.62f),
-                                 side * -10.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+                                 side * (adultOx ? -32.0f : -10.0f),
+                                 glm::vec3(1.0f, 0.0f, 0.0f));
+
+        if (milchCow && side > 0.0f)
+            cubes_.drawColored(shader, neck, glm::vec3(0.50f, 0.05f, 0.67f),
+                               glm::vec3(0.16f, 0.24f, 0.055f),
+                               glm::vec3(0.78f, 0.05f, 0.035f), 12.0f,
+                               glm::vec3(1.0f, 0.0f, 0.0f));
     }
 
     glm::mat4 tail = glm::translate(bobRoot, glm::vec3(-1.42f, bodyY + 0.18f, 0.0f));
@@ -254,8 +345,22 @@ void EntityRenderer::drawBovine(
     if (showUdder)
     {
         primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.35f, 0.72f, 0.0f),
-                               glm::vec3(0.60f, 0.34f, 0.42f),
-                               glm::vec3(0.78f, 0.52f, 0.52f));
+                               glm::vec3(0.72f, 0.46f, 0.54f),
+                               glm::vec3(0.84f, 0.57f, 0.58f));
+        for (float xOffset : {-0.55f, -0.20f})
+            for (float zOffset : {-0.18f, 0.18f})
+                primitives_.drawCone(shader, bobRoot,
+                                     glm::vec3(xOffset, 0.43f, zOffset),
+                                     glm::vec3(0.12f, 0.32f, 0.12f),
+                                     glm::vec3(0.78f, 0.48f, 0.50f),
+                                     180.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+
+    if (adultOx)
+    {
+        // A restrained underside detail reinforces the adult male silhouette.
+        primitives_.drawSphere(shader, bobRoot, glm::vec3(-0.20f, 0.69f, 0.0f),
+                               glm::vec3(0.42f, 0.42f, 0.34f), bodyColor * 0.62f);
     }
 }
 

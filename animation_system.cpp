@@ -10,12 +10,12 @@ AnimationSystem::AnimationSystem()
           {glm::vec3(-12.0f, 0.0f, -8.0f), -90.0f, 0.84f, CowState::Feeding,
            0.0f, 0.0f, 1.6f, 1.6f,
            glm::vec3(-12.0f, 0.0f, -8.0f), glm::vec3(-12.0f, 0.0f, -8.0f), false,
-           glm::vec3(0.91f, 0.88f, 0.78f), glm::vec3(0.08f, 0.07f, 0.06f), 0.55f,
+           glm::vec3(0.96f, 0.95f, 0.90f), glm::vec3(0.025f, 0.022f, 0.020f), 0.48f,
            true, glm::vec3(-12.0f, 1.05f, -6.10f), CattleRole::MilchCow},
           {glm::vec3(-8.0f, 0.0f, -8.0f), -90.0f, 0.96f, CowState::Standing,
            0.0f, 0.0f, 2.4f, 2.4f,
            glm::vec3(-8.0f, 0.0f, -8.0f), glm::vec3(-8.0f, 0.0f, -8.0f), false,
-           glm::vec3(0.24f, 0.18f, 0.13f), glm::vec3(0.88f, 0.80f, 0.68f), 1.08f,
+           glm::vec3(0.62f, 0.255f, 0.095f), glm::vec3(0.20f, 0.075f, 0.035f), 0.58f,
            true, glm::vec3(-8.0f, 1.05f, -6.10f), CattleRole::Ox}
       }},
       calves_{{
