@@ -1,163 +1,206 @@
-# AMS Agro Farm — Final Module 5
+<div align="center">
 
-The final module integrates the textured and illuminated farm with static
-curved GPU meshes, collision-aware exploration, bird's-eye and four-viewport
-camera modes, and a day/night animal routine. The livestock consists of one
-milch cow, one ox, two calves, chickens, ducks, a nesting hen and chicks.
+# AMS Agro Farm
 
-## Build and run
+### Interactive 3D Agro-Farm Visualization in Modern OpenGL
 
-### VS Code Run button
+An explorable farm simulation featuring animated livestock, task-driven farm
+activity, collision-aware navigation, textured procedural geometry, independent
+lighting systems, day/night behavior, and multiple technical camera views.
 
-1. In VS Code, open either the `ams_agro_farm` folder or its `Graphics project`
-   parent workspace; configurations for both layouts are included.
+![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square&logo=cplusplus)
+![OpenGL](https://img.shields.io/badge/OpenGL-3.3_Core-5586A4?style=flat-square&logo=opengl)
+![GLFW](https://img.shields.io/badge/GLFW-Windowing-2E3440?style=flat-square)
+![GLM](https://img.shields.io/badge/GLM-Mathematics-5C8D3A?style=flat-square)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?style=flat-square&logo=windows)
+
+</div>
+
+## Project Demo
+
+<div align="center">
+  <a href="https://drive.google.com/file/d/1EMApkfHGZpR_ZDTFk81WqK6BsHAgqDNJ/view?usp=sharing">
+    <img src="docs/demo-preview.gif" alt="Animated preview of the AMS Agro Farm walkthrough" width="900">
+  </a>
+  <br>
+  <strong><a href="https://drive.google.com/file/d/1EMApkfHGZpR_ZDTFk81WqK6BsHAgqDNJ/view?usp=sharing">▶ Watch the complete project </a></strong>
+  <br>
+  
+</div>
+
+## Overview
+
+AMS Agro Farm is a real-time graphics project developed for **CSE 4102 —
+Computer Graphics and Image Processing Laboratory**.
+
+The farm contains a Holstein milking cow, a Brahman-type ox, two calves,
+chickens, ducks, a nesting hen with chicks, and a command-driven worker. Animal
+and worker routines respond to user commands and the active time of day.
+
+## Key Features
+
+| Area | Implementation |
+|---|---|
+| Environment | Textured terrain, entrance, curved owner billboard, fences, sheds, worker house, trees, hay, crates, water facility and farm props |
+| Livestock | One milking cow, one ox, two calves, poultry, nesting hen and chicks |
+| Animation | Hierarchical body joints, walking, grazing, tails, worker tasks, rotating fans, gates and shelter routines |
+| Farm logic | Calf release/return/feeding routes, worker feeding workflow, daytime roaming and automatic night sheltering |
+| Lighting | Phong shading, directional sunlight, grouped point lights, entrance spotlight and independent fixture controls |
+| Navigation | Free-look camera with swept collision against gates, walls, fences, trees, stalls and equipment |
+| Camera modes | Perspective exploration, bird's-eye view and four simultaneous perspective/orthographic views |
+| Curved geometry | Bézier surface-of-revolution milk can, B-spline irrigation pipe and sampled ruled shed roof |
+
+## Graphics Techniques
+
+- Modern OpenGL 3.3 Core Profile with reusable VAO, VBO and EBO meshes
+- Model, view and projection transformations using GLM
+- Per-fragment Phong ambient, diffuse and specular lighting
+- Multiple independently controlled light sources with emissive fixtures
+- Indexed procedural meshes with positions, normals and UV coordinates
+- Texture mapping with mipmaps and multiple wrapping modes
+- Hierarchical modeling with local joint pivots
+- Delta-time animation independent of frame rate
+- Cubic Bézier and uniform cubic B-spline surface generation
+- Perspective and orthographic multi-viewport rendering
+- Swept camera collision to prevent tunneling through thin obstacles
+
+## Build and Run
+
+### Requirements
+
+- Windows 10 or Windows 11
+- MinGW GCC installed at `C:\MinGW`
+- Visual Studio Code with the Microsoft C/C++ extension, or Visual Studio 2022
+- The supplied `CSE 4208 - Graphics` folder beside `ams_agro_farm`
+
+
+
+The project already includes the MinGW GLFW import library and runtime DLL.
+GLAD, GLFW headers, GLM and `stb_image` are referenced from the course folder.
+
+### VS Code
+
+1. Open the `ams_agro_farm` folder in VS Code.
 2. Open `main.cpp`.
-3. Click the top-right triangle. Both **Run C/C++ File** and **Run Code** are
-   mapped to the complete project build-and-run command rather than a
-   single-file `gcc main.cpp` build.
+3. Click the **Run** triangle in the upper-right corner.
 
-The workspace configuration calls `run_project.ps1`, which compiles every
-project source file and then launches the OpenGL application. The project-local
-MinGW GLFW import library and runtime DLL are already included.
+The shared VS Code task calls `run_project.ps1`, compiles every source file and
+launches the complete application. It does not attempt an invalid single-file
+build of `main.cpp`.
 
-You can also choose **Run > Start Debugging** and select
-`Run AMS Agro Farm`; it uses the same build task with GDB.
+### PowerShell
 
-### Visual Studio
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run_project.ps1
+```
 
-1. Keep `ams_agro_farm` beside the supplied `CSE 4208 - Graphics` folder.
-2. Open `AMSAgroFarm.sln` in Visual Studio 2022.
-3. Select `Debug | x64`.
-4. Build the solution and choose **Start Without Debugging**.
+Build without launching:
 
-The project uses relative paths to the course GLAD/GLFW/GLM and Lab 4
-`stb_image` files. The post-build step copies both `shaders` and `textures`
-beside the executable.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run_project.ps1 -BuildOnly
+```
 
-The supplied `glfw3.lib` is a Visual Studio debug library (`MSVCRTD`), so the
-solution intentionally exposes the compatible `Debug | x64` configuration.
+### Visual Studio 2022
+
+1. Open `AMSAgroFarm.sln`.
+2. Select `Debug | x64`.
+3. Choose **Build Solution**, then **Start Without Debugging**.
 
 ## Controls
 
-- `W`, `A`, `S`, `D`: move through the scene
-- Mouse: look around
-- `Q`, `E`: move down/up
-- Mouse wheel: zoom
-- `B`: toggle full-screen orthographic bird's-eye view
-- `V`: toggle four simultaneous camera views
-- `G`: smoothly open or close both gate leaves
-- `O`: smoothly open or close both cattle-stall gates
-- `T`: toggle texture sampling on/off for demonstration
-- `C`: pause/resume adult cattle idle/body animation
-- `R`: pause/resume both running calves
-- `H`: pause/resume grazing/feeding head movement
-- `M`: advance the worker task: go to cows, feed, then go home
-- `K`: send the worker directly home
-- `L`: recall/release calves, chickens and ducks to/from their shelters
-- `J`: release the two calves through the ox-side shed door or send them back
-- `N`: bring both calves through the ox-side door to the internal fodder lane
-- `F`: pause/resume both shed fans
-- `1` or numpad `1`: toggle directional sunlight
-- `2` or numpad `2`: switch all point-light groups on/off together
-- `3` or numpad `3`: toggle the entrance spotlight
-- `4` (or numpad `4`): switch between day and night; the window title confirms
-  the active mode and whether the night lamps are enabled
-- `5` or numpad `5`: toggle the ambient lighting component
-- `6` or numpad `6`: toggle the diffuse lighting component
-- `7` or numpad `7`: toggle the specular lighting component
-- `8` or numpad `8`: toggle the cattle-shed and farm-building lights independently
-- `9` or numpad `9`: toggle all boundary-fence globe lamps independently
-- `0` or numpad `0`: toggle the entrance-banner light independently
-- `P`: toggle the owner-billboard light independently
-- `Esc`: close the application
+### Camera and Views
 
-## Texture assets
+| Input | Action |
+|---|---|
+| `W` `A` `S` `D` | Move forward, left, backward and right |
+| Mouse | Look around |
+| `Q` / `E` | Move down / up |
+| Mouse wheel | Zoom |
+| `B` | Toggle bird's-eye view |
+| `V` | Toggle four-viewport mode |
 
-- `grass.png`: repeating main field and entrance verge
-- `soil.png`: repeating dirt road and forecourt
-- `wood.png`: fences, sign, beams, frames, crates and tool rack
-- `brick.png`: entrance pillars, shed walls and barn walls
-- `roof.png`: corrugated shed/barn roofs and tank cap
-- `metal.png`: gate, structural posts, fans and water tower
-- `concrete.png`: floors, troughs, foundations and reserved platform
-- `hay.png`: hay bales and feed-sack approximations
-- `bark.png`: tree trunks
-- `leaves.png`: opaque geometric tree canopies
+### Farm Interaction
 
-All textures are loaded once at startup, use mipmaps and relative paths, and
-fall back to a visible checker if loading fails. `GL_REPEAT`,
-`GL_MIRRORED_REPEAT`, and `GL_CLAMP_TO_EDGE` are all represented.
+| Input | Action |
+|---|---|
+| `G` | Open or close the main farm gate |
+| `O` | Open or close both rear cattle-stall gates |
+| `T` | Enable or disable texture sampling |
+| `F` | Pause or resume the cattle-shed fans |
+| `M` | Advance the worker task: go, feed and return home |
+| `K` | Send the worker directly home |
+| `L` | Recall or release all mobile animals |
+| `J` | Release or return both calves through the ox-side door |
+| `N` | Send both calves through the ox-side door to their fodder mats |
 
-## Visible final scene
+### Animal Animation
 
-- textured 36 x 36 grass farm and aligned dirt road
-- repeated wooden boundary fence
-- brick/concrete entrance pillars, textured animated gate and farm sign
-- detailed open cow shed with floor, walls, posts, beams and sloped roof
-- two tied indoor cows, divided stalls, two fodder troughs and visible ropes
-- two independently rotating hierarchical fans and aligned emissive fixtures
-- enclosed feed barn with doorway, windows and sloped roof
-- seven varied hay bales, three crates and three feed sacks
-- eight reusable trees
-- elevated geometric water tank with supports and ladder
-- exactly two adult cattle: one feeding milch cow and one ox
-- two calves running smoothly on separate elliptical paths
-- one command-driven worker and a dedicated worker house
-- worker house relocated outside the entrance-gate swing envelope
-- shallow curved left-field billboard with unobstructed farm/owner identification
-- dedicated warm night lamps for the entrance banner and owner billboard
-- round emissive globe lamps on every major boundary-fence post
-- animated calf door built into the cattle-shed wall beside the ox
-- command-driven calf routes: ox-side shed lane, open field and internal fodder mats
-- daytime free-running calves, chickens and ducks
-- a small open-front poultry shed with a seated hen and chicks
-- night shelter routine: all animals stop and move inside their shelters
-- daytime shelter command with smooth return/release navigation
-- animated rear stall gates for inspecting the milch cow and ox
-- cubic Bézier surface-of-revolution milk can on the collection platform
-- cubic uniform B-spline irrigation pipe beside the water facility
-- sampled ruled-surface cow-shed roof replacing the old planar roof
-- collision-aware camera movement around walls, fences, trees and equipment
-- bird's-eye, front, side and top orthographic technical cameras
-- four-view mode with one perspective and three orthographic views
-- tool rack and an empty milk/curve-object platform for a later module
+| Input | Action |
+|---|---|
+| `C` | Pause or resume adult-cattle animation |
+| `R` | Pause or resume calf movement |
+| `H` | Pause or resume cattle head movement |
 
-All moving parts use delta time. Model roots control world translation/yaw,
-while legs, heads, tails, arms and fan blades animate around local joint pivots.
-All primitive and curved meshes are generated once with positions, normals,
-UVs and indexed triangles. Animation updates once before rendering, so enabling
-four views does not multiply movement speed.
+### Lighting
 
-## Quick test
+Number-row and numpad keys are both supported.
 
-1. Confirm the console reports that all textures loaded and the day scene is sunlit.
-2. Inspect the entrance and press `T` twice to compare textured and tint-only rendering.
-3. Press `G` and verify both leaves open inward around their pillars.
-4. Walk through the gate and inspect texture repetition on grass, road, fences and walls.
-5. Press `M` repeatedly: the worker walks to the shed, waits, feeds, then returns home; test `K` during the sequence.
-6. Press `L`, wait for the mobile animals to reach their shelters, then release them with `L` again.
-7. Check that cow legs, heads and tails and worker arms/legs stay attached at their pivots.
-8. Visit the shed; verify the fan mounts remain fixed while only the rotors turn.
-9. Enter the shed and verify two tied cows, green fodder, bulbs and fans are visible.
-10. Press `4`; verify the sky darkens and artificial fixtures dominate the night scene.
-11. At night test `1`, `2`, and `3`; use `8`, `9`, `0`, and `P` to verify
-    shed, fence, banner, and billboard lights independently; then test Phong
-    components with `5`, `6`, and `7`.
-12. Inspect the gate, fan and water facility for stronger metal highlights than grass/hay.
-13. Inspect the Bézier milk can, spline pipe and curved ruled roof.
-14. Press `B` and confirm the whole farm appears in an undistorted top view.
-15. Press `V` and compare free, top, front and side views simultaneously.
-16. Open the gate and verify the free camera cannot pass through closed walls,
-    fences, trees, troughs or other listed obstacles.
-17. During day confirm calves and mobile poultry move outside; press `4` and
-    confirm they stop and relocate to the cow/poultry shelters.
-18. With the entrance gate closed, walk toward it at full speed and confirm the
-    swept collision prevents passing through; open it and use the clear center gap.
-19. Press `O`, enter the opened rear stall gates, and inspect both cattle from behind.
-20. Press `J`; verify the door beside the ox opens, both calves leave through
-    that side passage, and the door closes after they reach the field. Press
-    `J` again and verify the reverse trip into the cattle shed.
-21. Release the calves and press `N`; verify both return through the same
-    ox-side door, stop at separate internal fodder mats and lower their heads.
-22. Open the main gate fully and verify neither leaf intersects the relocated
-    worker house. At night, inspect the round lamps on all boundary posts.
+| Input | Action |
+|---|---|
+| `1` / `Numpad 1` | Directional sunlight on/off |
+| `2` / `Numpad 2` | All point-light groups on/off |
+| `3` / `Numpad 3` | Entrance spotlight on/off |
+| `4` / `Numpad 4` | Day/night mode |
+| `5` / `Numpad 5` | Ambient component on/off |
+| `6` / `Numpad 6` | Diffuse component on/off |
+| `7` / `Numpad 7` | Specular component on/off |
+| `8` / `Numpad 8` | Shed and farm-building lights on/off |
+| `9` / `Numpad 9` | Boundary-fence globe lamps on/off |
+| `0` / `Numpad 0` | Entrance-banner light on/off |
+| `P` | Owner-billboard light on/off |
+| `Esc` | Exit the application |
+
+## System Behavior
+
+- The two adult cattle remain tied in separate indoor stalls with fodder in front.
+- Calves use the dedicated door beside the ox and never cross the front troughs.
+- `J` controls field release/return; `N` sends calves to separate indoor fodder mats.
+- The worker remains idle until commanded and can feed the cattle or return home.
+- During daytime, released calves and poultry move through the open farm areas.
+- At night, mobile animals return to their shelters and stop roaming.
+- Independent light states remain controllable in both day and night modes.
+- Gate, wall and obstacle collision states remain synchronized with animation.
+
+## Source Architecture
+
+| Component | Responsibility |
+|---|---|
+| `main.cpp` | Window lifecycle, input, frame timing, view selection and render loop |
+| `farm_scene.*` | Farm environment, structures, props, fixtures and gates |
+| `entity_renderer.*` | Cattle, calves, worker and poultry rendering |
+| `animation_system.*` | Entity state machines, routes and hierarchical animation values |
+| `lighting_system.*` | Day/night state, Phong lights and independent light groups |
+| `collision_system.h` | Static and animated obstacle collision |
+| `curved_renderer.*` | Bézier, B-spline and ruled-surface meshes |
+| `cube_renderer.*` | Reusable textured and colored cuboid rendering |
+| `primitive_renderer.*` | Reusable spheres, cylinders, cones and other primitives |
+| `texture_manager.*` | Texture loading, configuration and fallback behavior |
+| `shaders/` | Vertex and fragment shaders |
+| `textures/` | Farm texture assets |
+
+
+
+## Project Identity
+
+- **Project:** AMS Agro Farm
+- **Farm owner displayed in scene:** Md. Shahporan
+- **Course:** CSE 4208 — Computer Graphics
+- **Language:** C++17
+- **Graphics API:** OpenGL 3.3 Core Profile
+
+---
+
+<div align="center">
+  <strong>AMS Agro Farm</strong><br>
+  A complete interactive computer-graphics farm environment.
+</div>

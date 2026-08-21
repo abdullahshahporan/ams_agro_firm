@@ -47,6 +47,11 @@ ipch/
 
 # Logs, temporary files, backups and test captures
 *.log
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
 *.tmp
 *.temp
 *.bak
