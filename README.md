@@ -81,12 +81,12 @@ GLAD, GLFW headers, GLM and `stb_image` are referenced from the course folder.
 ### VS Code
 
 1. Open the `ams_agro_farm` folder in VS Code.
-2. Open `main.cpp`.
+2. Open `src/main.cpp`.
 3. Click the **Run** triangle in the upper-right corner.
 
 The shared VS Code task calls `run_project.ps1`, compiles every source file and
 launches the complete application. It does not attempt an invalid single-file
-build of `main.cpp`.
+build of `src/main.cpp`.
 
 ### PowerShell
 
@@ -178,18 +178,31 @@ Number-row and numpad keys are both supported.
 
 ## Source Architecture
 
+```text
+ams_agro_farm/
+├── src/          C++ implementation files
+├── include/      Project header files
+├── shaders/      GLSL vertex and fragment shaders
+├── textures/     Farm texture assets
+├── lib/          Local third-party libraries
+├── bin/          Compiled application and runtime DLLs
+├── docs/         Documentation assets
+├── README.md
+└── run_project.ps1
+```
+
 | Component | Responsibility |
 |---|---|
-| `main.cpp` | Window lifecycle, input, frame timing, view selection and render loop |
-| `farm_scene.*` | Farm environment, structures, props, fixtures and gates |
-| `entity_renderer.*` | Cattle, calves, worker and poultry rendering |
-| `animation_system.*` | Entity state machines, routes and hierarchical animation values |
-| `lighting_system.*` | Day/night state, Phong lights and independent light groups |
-| `collision_system.h` | Static and animated obstacle collision |
-| `curved_renderer.*` | Bézier, B-spline and ruled-surface meshes |
-| `cube_renderer.*` | Reusable textured and colored cuboid rendering |
-| `primitive_renderer.*` | Reusable spheres, cylinders, cones and other primitives |
-| `texture_manager.*` | Texture loading, configuration and fallback behavior |
+| `src/main.cpp` | Window lifecycle, input, frame timing, view selection and render loop |
+| `src/farm_scene.cpp` + `include/farm_scene.h` | Farm environment, structures, props, fixtures and gates |
+| `src/entity_renderer.cpp` + `include/entity_renderer.h` | Cattle, calves, worker and poultry rendering |
+| `src/animation_system.cpp` + `include/animation_system.h` | Entity state machines, routes and hierarchical animation values |
+| `src/lighting_system.cpp` + `include/lighting_system.h` | Day/night state, Phong lights and independent light groups |
+| `include/collision_system.h` | Static and animated obstacle collision |
+| `src/curved_renderer.cpp` + `include/curved_renderer.h` | Bézier, B-spline and ruled-surface meshes |
+| `src/cube_renderer.cpp` + `include/cube_renderer.h` | Reusable textured and colored cuboid rendering |
+| `src/primitive_renderer.cpp` + `include/primitive_renderer.h` | Reusable spheres, cylinders, cones and other primitives |
+| `src/texture_manager.cpp` + `include/texture_manager.h` | Texture loading, configuration and fallback behavior |
 | `shaders/` | Vertex and fragment shaders |
 | `textures/` | Farm texture assets |
 

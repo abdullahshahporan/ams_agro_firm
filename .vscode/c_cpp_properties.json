@@ -9,7 +9,8 @@
             "cStandard": "c11",
             "defines": ["GLFW_DLL"],
             "includePath": [
-                "${workspaceFolder}/**",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
                 "${workspaceFolder}/../CSE 4208 - Graphics/Lab_2/opengl/include",
                 "${workspaceFolder}/../CSE 4208 - Graphics/Lab_4/codes"
             ]

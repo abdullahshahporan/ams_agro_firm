@@ -38,7 +38,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\CSE 4208 - Graphics\Lab_2\opengl\include;$(ProjectDir)..\CSE 4208 - Graphics\Lab_4\codes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)..\CSE 4208 - Graphics\Lab_2\opengl\include;$(ProjectDir)..\CSE 4208 - Graphics\Lab_4\codes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -53,30 +53,30 @@
   <ItemGroup>
     <ClCompile Include="..\CSE 4208 - Graphics\Lab_2\opengl\glad.c" />
     <ClCompile Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.cpp" />
-    <ClCompile Include="cube_renderer.cpp" />
-    <ClCompile Include="primitive_renderer.cpp" />
-    <ClCompile Include="animation_system.cpp" />
-    <ClCompile Include="lighting_system.cpp" />
-    <ClCompile Include="curved_renderer.cpp" />
-    <ClCompile Include="entity_renderer.cpp" />
-    <ClCompile Include="farm_scene.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="texture_manager.cpp" />
+    <ClCompile Include="src\animation_system.cpp" />
+    <ClCompile Include="src\cube_renderer.cpp" />
+    <ClCompile Include="src\curved_renderer.cpp" />
+    <ClCompile Include="src\entity_renderer.cpp" />
+    <ClCompile Include="src\farm_scene.cpp" />
+    <ClCompile Include="src\lighting_system.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\primitive_renderer.cpp" />
+    <ClCompile Include="src\texture_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.h" />
-    <ClInclude Include="camera.h" />
-    <ClInclude Include="animation_system.h" />
-    <ClInclude Include="lighting_system.h" />
-    <ClInclude Include="collision_system.h" />
-    <ClInclude Include="curved_renderer.h" />
-    <ClInclude Include="material.h" />
-    <ClInclude Include="cube_renderer.h" />
-    <ClInclude Include="farm_scene.h" />
-    <ClInclude Include="entity_renderer.h" />
-    <ClInclude Include="primitive_renderer.h" />
-    <ClInclude Include="shader.h" />
-    <ClInclude Include="texture_manager.h" />
+    <ClInclude Include="include\animation_system.h" />
+    <ClInclude Include="include\camera.h" />
+    <ClInclude Include="include\collision_system.h" />
+    <ClInclude Include="include\cube_renderer.h" />
+    <ClInclude Include="include\curved_renderer.h" />
+    <ClInclude Include="include\entity_renderer.h" />
+    <ClInclude Include="include\farm_scene.h" />
+    <ClInclude Include="include\lighting_system.h" />
+    <ClInclude Include="include\material.h" />
+    <ClInclude Include="include\primitive_renderer.h" />
+    <ClInclude Include="include\shader.h" />
+    <ClInclude Include="include\texture_manager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\texture.fs" />

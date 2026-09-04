@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{93B5507D-86BA-4E77-8C95-85D4C2606544}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{4E766C41-FA8A-4B7C-B68A-D5B0B1788492}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx</Extensions>
+    </Filter>
+    <Filter Include="External Dependencies">
+      <UniqueIdentifier>{CF47579B-B0F1-4B85-9C8C-EF81A3C75C20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{F4E1B751-006D-48F0-9D69-C117AFA6C54D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Textures">
+      <UniqueIdentifier>{DD5B36D2-04B7-4115-A796-641D8B0D2EED}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\CSE 4208 - Graphics\Lab_2\opengl\glad.c">
+      <Filter>External Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.cpp">
+      <Filter>External Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="src\animation_system.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\cube_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\curved_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\entity_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\farm_scene.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\lighting_system.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\main.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\primitive_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\texture_manager.cpp"><Filter>Source Files</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.h">
+      <Filter>External Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="include\animation_system.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\camera.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\collision_system.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\cube_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\curved_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\entity_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\farm_scene.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\lighting_system.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\material.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\primitive_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\shader.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\texture_manager.h"><Filter>Header Files</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\texture.fs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\texture.vs"><Filter>Shaders</Filter></None>
+    <None Include="textures\*.png"><Filter>Textures</Filter></None>
+  </ItemGroup>
+</Project>

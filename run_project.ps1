@@ -8,6 +8,8 @@ $compiler = 'C:\MinGW\bin\g++.exe'
 $courseRoot = Join-Path $projectRoot '..\CSE 4208 - Graphics'
 $openGlRoot = Join-Path $courseRoot 'Lab_2\opengl'
 $lab4CodeRoot = Join-Path $courseRoot 'Lab_4\codes'
+$sourceDirectory = Join-Path $projectRoot 'src'
+$includeDirectory = Join-Path $projectRoot 'include'
 $outputDirectory = Join-Path $projectRoot 'bin\MinGW'
 $outputExecutable = Join-Path $outputDirectory 'AMSAgroFarm.exe'
 $glfwImportLibraryDirectory = Join-Path $projectRoot 'lib\MinGW'
@@ -29,22 +31,28 @@ foreach ($requiredPath in $requiredPaths) {
 
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 
+$projectSources = @(
+    Get-ChildItem -LiteralPath $sourceDirectory -Filter '*.cpp' -File |
+        Sort-Object Name |
+        ForEach-Object FullName
+)
+
+if ($projectSources.Count -eq 0) {
+    throw "No C++ source files found in: $sourceDirectory"
+}
+
 $compilerArguments = @(
     '-std=c++17',
     '-O0',
     '-g',
     '-DGLFW_DLL',
+    '-I', $includeDirectory,
     '-I', (Join-Path $openGlRoot 'include'),
-    '-I', $lab4CodeRoot,
-    (Join-Path $projectRoot 'main.cpp'),
-    (Join-Path $projectRoot 'cube_renderer.cpp'),
-    (Join-Path $projectRoot 'primitive_renderer.cpp'),
-    (Join-Path $projectRoot 'animation_system.cpp'),
-    (Join-Path $projectRoot 'lighting_system.cpp'),
-    (Join-Path $projectRoot 'curved_renderer.cpp'),
-    (Join-Path $projectRoot 'entity_renderer.cpp'),
-    (Join-Path $projectRoot 'farm_scene.cpp'),
-    (Join-Path $projectRoot 'texture_manager.cpp'),
+    '-I', $lab4CodeRoot
+)
+
+$compilerArguments += $projectSources
+$compilerArguments += @(
     (Join-Path $openGlRoot 'glad.c'),
     (Join-Path $lab4CodeRoot 'stb_image.cpp'),
     '-L', $glfwImportLibraryDirectory,
