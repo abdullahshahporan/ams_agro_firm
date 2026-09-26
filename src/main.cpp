@@ -22,6 +22,8 @@
 #include <stdexcept>
 #include <string>
 
+using namespace std;
+
 namespace
 {
 constexpr unsigned int InitialWidth = 1200;
@@ -63,7 +65,7 @@ void updateWindowTitle(GLFWwindow* window)
     if (window == nullptr)
         return;
 
-    std::string title = "AMS Agro Farm | ";
+    string title = "AMS Agro Farm | ";
     title += lightingSystem.nightMode() ? "NIGHT" : "DAY";
     title += fourViewMode ? " | FOUR VIEW" : (birdEyeMode ? " | BIRD'S-EYE" : " | FREE VIEW");
     title += " | Shed ";
@@ -92,60 +94,60 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     if (key == GLFW_KEY_G && action == GLFW_PRESS)
     {
         gateShouldBeOpen = !gateShouldBeOpen;
-        std::cout << "Gate: " << (gateShouldBeOpen ? "opening" : "closing") << '\n';
+        cout << "Gate: " << (gateShouldBeOpen ? "opening" : "closing") << '\n';
     }
 
     if (key == GLFW_KEY_O && action == GLFW_PRESS)
     {
         stallGatesShouldBeOpen = !stallGatesShouldBeOpen;
-        std::cout << "Cattle stall gates: "
+        cout << "Cattle stall gates: "
                   << (stallGatesShouldBeOpen ? "opening" : "closing") << '\n';
     }
 
     if (key == GLFW_KEY_T && action == GLFW_PRESS)
     {
         texturesEnabled = !texturesEnabled;
-        std::cout << "Textures: " << (texturesEnabled ? "ON" : "OFF") << '\n';
+        cout << "Textures: " << (texturesEnabled ? "ON" : "OFF") << '\n';
     }
 
     if (key == GLFW_KEY_C && action == GLFW_PRESS)
     {
         animationSystem.toggleAdultCows();
-        std::cout << "Adult cow movement: " << (animationSystem.adultCowsOn() ? "ON" : "PAUSED") << '\n';
+        cout << "Adult cow movement: " << (animationSystem.adultCowsOn() ? "ON" : "PAUSED") << '\n';
     }
     if (key == GLFW_KEY_R && action == GLFW_PRESS)
     {
         animationSystem.toggleCalves();
-        std::cout << "Calf motion: " << (animationSystem.calvesOn() ? "ON" : "PAUSED") << '\n';
+        cout << "Calf motion: " << (animationSystem.calvesOn() ? "ON" : "PAUSED") << '\n';
     }
     if (key == GLFW_KEY_H && action == GLFW_PRESS)
     {
         animationSystem.toggleHeadMotion();
-        std::cout << "Cow head/grazing motion: " << (animationSystem.headMotionOn() ? "ON" : "PAUSED") << '\n';
+        cout << "Cow head/grazing motion: " << (animationSystem.headMotionOn() ? "ON" : "PAUSED") << '\n';
     }
     if (key == GLFW_KEY_M && action == GLFW_PRESS)
     {
         if (lightingSystem.nightMode())
-            std::cout << "Worker: night routine active; only the Home command is available.\n";
+            cout << "Worker: night routine active; only the Home command is available.\n";
         else
         {
             animationSystem.commandWorker();
-            std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+            cout << "Worker: " << animationSystem.workerStatus() << '\n';
         }
     }
     if (key == GLFW_KEY_K && action == GLFW_PRESS)
     {
         animationSystem.sendWorkerHome();
-        std::cout << "Worker: " << animationSystem.workerStatus() << '\n';
+        cout << "Worker: " << animationSystem.workerStatus() << '\n';
     }
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
     {
         if (lightingSystem.nightMode())
-            std::cout << "Mobile animals: night routine keeps every animal sheltered.\n";
+            cout << "Mobile animals: night routine keeps every animal sheltered.\n";
         else
         {
             animationSystem.toggleAnimalShelter();
-            std::cout << "Mobile animals: "
+            cout << "Mobile animals: "
                       << (animationSystem.animalShelterRequested()
                           ? "returning/staying in shelters" : "released to daytime fields")
                       << '\n';
@@ -154,73 +156,73 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     if (key == GLFW_KEY_J && action == GLFW_PRESS)
     {
         if (lightingSystem.nightMode())
-            std::cout << "Calves: release is unavailable during the night routine.\n";
+            cout << "Calves: release is unavailable during the night routine.\n";
         else
         {
             animationSystem.toggleCalfShed();
-            std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+            cout << "Calves: " << animationSystem.calfStatus() << '\n';
         }
     }
     if (key == GLFW_KEY_N && action == GLFW_PRESS)
     {
         if (lightingSystem.nightMode())
-            std::cout << "Calves: feeding command is unavailable during the night routine.\n";
+            cout << "Calves: feeding command is unavailable during the night routine.\n";
         else
         {
             animationSystem.sendCalvesToFeed();
-            std::cout << "Calves: " << animationSystem.calfStatus() << '\n';
+            cout << "Calves: " << animationSystem.calfStatus() << '\n';
         }
     }
     if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
         animationSystem.toggleFans();
-        std::cout << "Shed fans: " << (animationSystem.fansOn() ? "ON" : "PAUSED") << '\n';
+        cout << "Shed fans: " << (animationSystem.fansOn() ? "ON" : "PAUSED") << '\n';
     }
 
     if ((key == GLFW_KEY_1 || key == GLFW_KEY_KP_1) && action == GLFW_PRESS)
     {
         lightingSystem.toggleDirectional();
-        std::cout << "Directional light: " << (lightingSystem.directionalEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Directional light: " << (lightingSystem.directionalEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_2 || key == GLFW_KEY_KP_2) && action == GLFW_PRESS)
     {
         lightingSystem.togglePointLights();
-        std::cout << "Point lights: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Point lights: " << (lightingSystem.pointLightsEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_8 || key == GLFW_KEY_KP_8) && action == GLFW_PRESS)
     {
         lightingSystem.toggleShedLights();
-        std::cout << "Shed/building lights: "
+        cout << "Shed/building lights: "
                   << (lightingSystem.shedLightsEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_9 || key == GLFW_KEY_KP_9) && action == GLFW_PRESS)
     {
         lightingSystem.toggleFenceLights();
-        std::cout << "Fence lamps: "
+        cout << "Fence lamps: "
                   << (lightingSystem.fenceLightsEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_0 || key == GLFW_KEY_KP_0) && action == GLFW_PRESS)
     {
         lightingSystem.toggleBannerLight();
-        std::cout << "Entrance banner light: "
+        cout << "Entrance banner light: "
                   << (lightingSystem.bannerLightEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
     {
         lightingSystem.toggleBillboardLight();
-        std::cout << "Owner billboard light: "
+        cout << "Owner billboard light: "
                   << (lightingSystem.billboardLightEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_3 || key == GLFW_KEY_KP_3) && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpotlight();
-        std::cout << "Entrance spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Entrance spotlight: " << (lightingSystem.spotlightEnabled() ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if ((key == GLFW_KEY_4 || key == GLFW_KEY_KP_4) && action == GLFW_PRESS)
@@ -228,7 +230,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         lightingSystem.toggleDayNight();
         animationSystem.setNightMode(lightingSystem.nightMode());
         updateWindowTitle(window);
-        std::cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY")
+        cout << "Time of day: " << (lightingSystem.nightMode() ? "NIGHT" : "DAY")
                   << " | Shed: " << (lightingSystem.shedLightsEnabled() ? "ON" : "OFF")
                   << " | Fence: " << (lightingSystem.fenceLightsEnabled() ? "ON" : "OFF")
                   << " | Banner: " << (lightingSystem.bannerLightEnabled() ? "ON" : "OFF")
@@ -239,17 +241,17 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     if ((key == GLFW_KEY_5 || key == GLFW_KEY_KP_5) && action == GLFW_PRESS)
     {
         lightingSystem.toggleAmbient();
-        std::cout << "Ambient component: " << (lightingSystem.ambientEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Ambient component: " << (lightingSystem.ambientEnabled() ? "ON" : "OFF") << '\n';
     }
     if ((key == GLFW_KEY_6 || key == GLFW_KEY_KP_6) && action == GLFW_PRESS)
     {
         lightingSystem.toggleDiffuse();
-        std::cout << "Diffuse component: " << (lightingSystem.diffuseEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Diffuse component: " << (lightingSystem.diffuseEnabled() ? "ON" : "OFF") << '\n';
     }
     if ((key == GLFW_KEY_7 || key == GLFW_KEY_KP_7) && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpecular();
-        std::cout << "Specular component: " << (lightingSystem.specularEnabled() ? "ON" : "OFF") << '\n';
+        cout << "Specular component: " << (lightingSystem.specularEnabled() ? "ON" : "OFF") << '\n';
     }
     if (key == GLFW_KEY_B && action == GLFW_PRESS)
     {
@@ -257,7 +259,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         if (birdEyeMode)
             fourViewMode = false;
         firstMouseEvent = true;
-        std::cout << "Bird's-eye view: " << (birdEyeMode ? "ON" : "OFF") << '\n';
+        cout << "Bird's-eye view: " << (birdEyeMode ? "ON" : "OFF") << '\n';
         updateWindowTitle(window);
     }
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
@@ -266,9 +268,9 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         if (fourViewMode)
             birdEyeMode = false;
         firstMouseEvent = true;
-        std::cout << "Four-view mode: " << (fourViewMode ? "ON" : "OFF") << '\n';
+        cout << "Four-view mode: " << (fourViewMode ? "ON" : "OFF") << '\n';
         if (fourViewMode)
-            std::cout << "Four-view layout: top-left Free | top-right Top | "
+            cout << "Four-view layout: top-left Free | top-right Top | "
                          "bottom-left Front | bottom-right Side\n";
         updateWindowTitle(window);
     }
@@ -278,7 +280,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         glfwSetInputMode(window, GLFW_CURSOR,
                          mouseCaptured ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
         firstMouseEvent = true;
-        std::cout << "Mouse capture: " << (mouseCaptured ? "ON" : "OFF") << '\n';
+        cout << "Mouse capture: " << (mouseCaptured ? "ON" : "OFF") << '\n';
     }
     if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
     {
@@ -324,7 +326,7 @@ void tryCameraMovement(CameraMovement movement)
     // Sweep in short steps so a low-frame-rate movement cannot tunnel through
     // thin gates, fence rails, walls, or stall doors.
     const float distance = glm::length(requested - previous);
-    const int steps = std::max(1, static_cast<int>(std::ceil(distance / 0.10f)));
+    const int steps = max(1, static_cast<int>(ceil(distance / 0.10f)));
     for (int step = 1; step <= steps; ++step)
     {
         const glm::vec3 candidate = glm::mix(previous, requested,
@@ -362,9 +364,9 @@ void processInput(GLFWwindow* window)
 float moveTowardAngle(float current, float target, float maximumStep)
 {
     if (current < target)
-        return std::min(current + maximumStep, target);
+        return min(current + maximumStep, target);
     if (current > target)
-        return std::max(current - maximumStep, target);
+        return max(current - maximumStep, target);
     return current;
 }
 
@@ -446,10 +448,10 @@ void drawFourViewSeparators(int width, int height, int verticalSplit,
     constexpr int thickness = 3;
     glEnable(GL_SCISSOR_TEST);
     glClearColor(0.78f, 0.57f, 0.20f, 1.0f);
-    glScissor(std::max(0, verticalSplit - thickness / 2), 0,
+    glScissor(max(0, verticalSplit - thickness / 2), 0,
               thickness, height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glScissor(0, std::max(0, horizontalSplit - thickness / 2),
+    glScissor(0, max(0, horizontalSplit - thickness / 2),
               width, thickness);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_SCISSOR_TEST);
@@ -457,7 +459,7 @@ void drawFourViewSeparators(int width, int height, int verticalSplit,
 
 void printControls()
 {
-    std::cout
+    cout
         << "========================================\n"
         << "AMS AGRO FARM - INTEGRATED SYSTEM\n"
         << "========================================\n"
@@ -505,7 +507,7 @@ int main()
 
     if (!glfwInit())
     {
-        std::cerr << "Failed to initialize GLFW.\n";
+        cerr << "Failed to initialize GLFW.\n";
         return -1;
     }
 
@@ -522,7 +524,7 @@ int main()
 
     if (window == nullptr)
     {
-        std::cerr << "Failed to create the GLFW window.\n";
+        cerr << "Failed to create the GLFW window.\n";
         glfwTerminate();
         return -1;
     }
@@ -538,7 +540,7 @@ int main()
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
     {
-        std::cerr << "Failed to initialize GLAD.\n";
+        cerr << "Failed to initialize GLAD.\n";
         glfwDestroyWindow(window);
         glfwTerminate();
         return -1;
@@ -561,13 +563,13 @@ int main()
         EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
 
         if (textureManager.allFilesLoaded())
-            std::cout << "All farm textures loaded successfully.\n";
+            cout << "All farm textures loaded successfully.\n";
 
         lastFrame = static_cast<float>(glfwGetTime());
         while (!glfwWindowShouldClose(window))
         {
             const float currentFrame = static_cast<float>(glfwGetTime());
-            deltaTime = std::min(currentFrame - lastFrame, 0.10f);
+            deltaTime = min(currentFrame - lastFrame, 0.10f);
             lastFrame = currentFrame;
 
             processInput(window);
@@ -648,9 +650,9 @@ int main()
             glfwPollEvents();
         }
     }
-    catch (const std::exception& error)
+    catch (const exception& error)
     {
-        std::cerr << "Application error: " << error.what() << '\n';
+        cerr << "Application error: " << error.what() << '\n';
         exitCode = -1;
     }
 

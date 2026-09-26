@@ -8,6 +8,8 @@
 #include <array>
 #include <glm/glm.hpp>
 
+using namespace std;
+
 class FarmScene
 {
 public:
@@ -17,9 +19,9 @@ public:
 
     void render(const Shader& shader, float gateAngleDegrees, float stallGateAngleDegrees,
                 float calfShedDoorAngleDegrees, float fanAngleDegrees,
-                const std::array<float, 5>& pointFixtureEmissions,
+                const array<float, 5>& pointFixtureEmissions,
                 float fenceFixtureEmission, float spotlightFixtureEmission) const;
-    static const std::array<glm::vec3, 4>& futureCowPositions();
+    static const array<glm::vec3, 4>& futureCowPositions();
 
 private:
     void drawGround(const Shader& shader) const;
@@ -59,7 +61,7 @@ private:
     void drawShedFans(const Shader& shader, float fanAngleDegrees) const;
     void drawFan(const Shader& shader, const glm::vec3& position, float parentAngle) const;
     void drawLightFixtures(const Shader& shader,
-                           const std::array<float, 5>& pointEmissions,
+                           const array<float, 5>& pointEmissions,
                            float spotlightEmission) const;
 
     void drawFarmProps(const Shader& shader) const;

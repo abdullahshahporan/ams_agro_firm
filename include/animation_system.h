@@ -4,6 +4,8 @@
 #include <array>
 #include <glm/glm.hpp>
 
+using namespace std;
+
 enum class CowState
 {
     Standing,
@@ -150,10 +152,10 @@ public:
     const char* calfStatus() const;
     const char* workerStatus() const;
 
-    const std::array<Cow, 2>& cows() const { return cows_; }
-    const std::array<Calf, 2>& calves() const { return calves_; }
-    const std::array<Worker, 1>& workers() const { return workers_; }
-    const std::array<Bird, 7>& birds() const { return birds_; }
+    const array<Cow, 2>& cows() const { return cows_; }
+    const array<Calf, 2>& calves() const { return calves_; }
+    const array<Worker, 1>& workers() const { return workers_; }
+    const array<Bird, 7>& birds() const { return birds_; }
 
 private:
     static void updateCowPatrol(Cow& cow, float deltaTime);
@@ -167,10 +169,10 @@ private:
                            float speed, float deltaTime);
     static float yawForDirection(const glm::vec3& direction);
 
-    std::array<Cow, 2> cows_;
-    std::array<Calf, 2> calves_;
-    std::array<Worker, 1> workers_;
-    std::array<Bird, 7> birds_;
+    array<Cow, 2> cows_;
+    array<Calf, 2> calves_;
+    array<Worker, 1> workers_;
+    array<Bird, 7> birds_;
 
     bool adultCowsOn_{true};
     bool calvesOn_{true};

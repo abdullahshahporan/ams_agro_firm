@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <string>
 
+using namespace std;
+
 class Shader
 {
 public:
@@ -18,8 +20,8 @@ public:
 
     Shader(const char* vertexPath, const char* fragmentPath)
     {
-        const std::string vertexCode = readFile(vertexPath);
-        const std::string fragmentCode = readFile(fragmentPath);
+        const string vertexCode = readFile(vertexPath);
+        const string fragmentCode = readFile(fragmentPath);
 
         const unsigned int vertexShader = compile(GL_VERTEX_SHADER, vertexCode, vertexPath);
         const unsigned int fragmentShader = compile(GL_FRAGMENT_SHADER, fragmentCode, fragmentPath);
@@ -37,7 +39,7 @@ public:
             glGetProgramInfoLog(ID, sizeof(infoLog), nullptr, infoLog);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
-            throw std::runtime_error(std::string("Shader program link failed:\n") + infoLog);
+            throw runtime_error(string("Shader program link failed:\n") + infoLog);
         }
 
         glDeleteShader(vertexShader);
@@ -58,32 +60,32 @@ public:
         glUseProgram(ID);
     }
 
-    void setVec3(const std::string& name, const glm::vec3& value) const
+    void setVec3(const string& name, const glm::vec3& value) const
     {
         glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
     }
 
-    void setVec2(const std::string& name, const glm::vec2& value) const
+    void setVec2(const string& name, const glm::vec2& value) const
     {
         glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
     }
 
-    void setBool(const std::string& name, bool value) const
+    void setBool(const string& name, bool value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value ? 1 : 0);
     }
 
-    void setInt(const std::string& name, int value) const
+    void setInt(const string& name, int value) const
     {
         glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-    void setFloat(const std::string& name, float value) const
+    void setFloat(const string& name, float value) const
     {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
     }
 
-    void setMat4(const std::string& name, const glm::mat4& value) const
+    void setMat4(const string& name, const glm::mat4& value) const
     {
         glUniformMatrix4fv(
             glGetUniformLocation(ID, name.c_str()),
@@ -93,18 +95,18 @@ public:
     }
 
 private:
-    static std::string readFile(const char* path)
+    static string readFile(const char* path)
     {
-        std::ifstream file(path);
+        ifstream file(path);
         if (!file)
-            throw std::runtime_error(std::string("Could not open shader file: ") + path);
+            throw runtime_error(string("Could not open shader file: ") + path);
 
-        std::stringstream stream;
+        stringstream stream;
         stream << file.rdbuf();
         return stream.str();
     }
 
-    static unsigned int compile(unsigned int type, const std::string& source, const char* path)
+    static unsigned int compile(unsigned int type, const string& source, const char* path)
     {
         const unsigned int shader = glCreateShader(type);
         const char* sourcePointer = source.c_str();
@@ -118,7 +120,7 @@ private:
             char infoLog[1024];
             glGetShaderInfoLog(shader, sizeof(infoLog), nullptr, infoLog);
             glDeleteShader(shader);
-            throw std::runtime_error(std::string("Shader compilation failed for ") + path + ":\n" + infoLog);
+            throw runtime_error(string("Shader compilation failed for ") + path + ":\n" + infoLog);
         }
         return shader;
     }

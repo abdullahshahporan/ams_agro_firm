@@ -5,6 +5,8 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/norm.hpp>
 
+using namespace std;
+
 AnimationSystem::AnimationSystem()
     : cows_{{
           {glm::vec3(-12.0f, 0.0f, -8.0f), -90.0f, 0.84f, CowState::Feeding,
@@ -130,7 +132,7 @@ void AnimationSystem::update(float deltaTime)
     }
 
     if (fansOn_)
-        fanAngle_ = std::fmod(fanAngle_ + 320.0f * deltaTime, 360.0f);
+        fanAngle_ = fmod(fanAngle_ + 320.0f * deltaTime, 360.0f);
 }
 
 void AnimationSystem::setNightMode(bool nightMode)
@@ -291,22 +293,22 @@ void AnimationSystem::updateCowPatrol(Cow& cow, float deltaTime)
         return;
     }
 
-    const float distance = std::sqrt(distanceSquared);
+    const float distance = sqrt(distanceSquared);
     const glm::vec3 direction = difference / distance;
-    cow.position += direction * std::min(cow.speed * deltaTime, distance);
+    cow.position += direction * min(cow.speed * deltaTime, distance);
     cow.yaw = yawForDirection(direction);
 }
 
 void AnimationSystem::updateCalfPath(Calf& calf, float deltaTime)
 {
-    calf.pathAngle = std::fmod(
+    calf.pathAngle = fmod(
         calf.pathAngle + calf.direction * calf.speed * 0.42f * deltaTime,
         glm::two_pi<float>());
     if (calf.pathAngle < 0.0f)
         calf.pathAngle += glm::two_pi<float>();
 
-    const float cosine = std::cos(calf.pathAngle);
-    const float sine = std::sin(calf.pathAngle);
+    const float cosine = cos(calf.pathAngle);
+    const float sine = sin(calf.pathAngle);
     calf.position = calf.pathCenter + glm::vec3(calf.pathRadius.x * cosine, 0.0f, calf.pathRadius.y * sine);
 
     glm::vec3 tangent(
@@ -336,7 +338,7 @@ void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
     {
         // First align with the opening from either internal stall, then cross
         // the wall. This prevents the nearer calf from clipping a brick edge.
-        target = std::abs(calf.position.z - insideDoor.z) > 0.045f
+        target = abs(calf.position.z - insideDoor.z) > 0.045f
             ? insideDoor : outsideDoor;
     }
     else if (destination == CalfDestination::FeedingArea)
@@ -353,9 +355,9 @@ void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
     }
     else
     {
-        target = calf.pathCenter + glm::vec3(calf.pathRadius.x * std::cos(calf.pathAngle),
+        target = calf.pathCenter + glm::vec3(calf.pathRadius.x * cos(calf.pathAngle),
                                              0.0f,
-                                             calf.pathRadius.y * std::sin(calf.pathAngle));
+                                             calf.pathRadius.y * sin(calf.pathAngle));
         finalTarget = true;
     }
 
@@ -393,21 +395,21 @@ void AnimationSystem::updateWorker(Worker& worker, float deltaTime)
         return;
     }
 
-    const float distance = std::sqrt(distanceSquared);
+    const float distance = sqrt(distanceSquared);
     const glm::vec3 direction = difference / distance;
-    worker.position += direction * std::min(worker.speed * deltaTime, distance);
+    worker.position += direction * min(worker.speed * deltaTime, distance);
     worker.yaw = yawForDirection(direction);
 }
 
 void AnimationSystem::updateBirdPath(Bird& bird, float deltaTime)
 {
-    bird.pathAngle = std::fmod(
+    bird.pathAngle = fmod(
         bird.pathAngle + bird.direction * bird.speed * deltaTime,
         glm::two_pi<float>());
     if (bird.pathAngle < 0.0f)
         bird.pathAngle += glm::two_pi<float>();
-    const float c = std::cos(bird.pathAngle);
-    const float s = std::sin(bird.pathAngle);
+    const float c = cos(bird.pathAngle);
+    const float s = sin(bird.pathAngle);
     bird.position = bird.pathCenter + glm::vec3(bird.pathRadius.x * c, 0.0f,
                                                 bird.pathRadius.y * s);
     const glm::vec3 tangent(-bird.pathRadius.x * s * bird.direction, 0.0f,
@@ -421,11 +423,11 @@ void AnimationSystem::updateBirdNavigation(Bird& bird, float deltaTime,
 {
     glm::vec3 target = bird.shelterPosition;
     if (!shelterRequested)
-        target = bird.pathCenter + glm::vec3(bird.pathRadius.x * std::cos(bird.pathAngle),
+        target = bird.pathCenter + glm::vec3(bird.pathRadius.x * cos(bird.pathAngle),
                                              0.0f,
-                                             bird.pathRadius.y * std::sin(bird.pathAngle));
+                                             bird.pathRadius.y * sin(bird.pathAngle));
     if (moveToward(bird.position, bird.yaw, target,
-                   std::max(0.72f, bird.speed), deltaTime))
+                   max(0.72f, bird.speed), deltaTime))
         bird.routeState = shelterRequested
             ? Calf::RouteState::Sheltered : Calf::RouteState::Roaming;
 }
@@ -441,9 +443,9 @@ bool AnimationSystem::moveToward(glm::vec3& position, float& yaw,
         position = target;
         return true;
     }
-    const float distance = std::sqrt(distanceSquared);
+    const float distance = sqrt(distanceSquared);
     const glm::vec3 direction = difference / distance;
-    position += direction * std::min(speed * deltaTime, distance);
+    position += direction * min(speed * deltaTime, distance);
     yaw = yawForDirection(direction);
     return distance <= speed * deltaTime;
 }
@@ -451,5 +453,5 @@ bool AnimationSystem::moveToward(glm::vec3& position, float& yaw,
 float AnimationSystem::yawForDirection(const glm::vec3& direction)
 {
     // All animated models use local +X as forward.
-    return glm::degrees(std::atan2(-direction.z, direction.x));
+    return glm::degrees(atan2(-direction.z, direction.x));
 }

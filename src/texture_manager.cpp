@@ -5,6 +5,8 @@
 #include <array>
 #include <iostream>
 
+using namespace std;
+
 TextureManager::TextureManager()
 {
     stbi_set_flip_vertically_on_load(true);
@@ -34,7 +36,7 @@ TextureManager::TextureManager()
 
 TextureManager::~TextureManager()
 {
-    const std::array<unsigned int, 10> textureIds = {
+    const array<unsigned int, 10> textureIds = {
         textures_.grass, textures_.soil, textures_.wood, textures_.brick, textures_.roof,
         textures_.metal, textures_.concrete, textures_.hay, textures_.bark, textures_.leaves
     };
@@ -80,7 +82,7 @@ unsigned int TextureManager::loadTexture(
     }
     else
     {
-        std::cerr << "Failed to load texture: " << path << "\nReason: "
+        cerr << "Failed to load texture: " << path << "\nReason: "
                   << stbi_failure_reason() << "\nUsing a visible fallback texture.\n";
         constexpr unsigned char fallback[] = {
             255, 0, 255,   30, 30, 30,

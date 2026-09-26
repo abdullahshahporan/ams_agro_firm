@@ -6,6 +6,8 @@
 #include <array>
 #include <glm/glm.hpp>
 
+using namespace std;
+
 class LightingSystem
 {
 public:
@@ -38,16 +40,16 @@ public:
     bool specularEnabled() const { return specularEnabled_; }
 
     glm::vec3 clearColor() const;
-    std::array<float, 5> pointFixtureEmissions() const;
+    array<float, 5> pointFixtureEmissions() const;
     float fenceFixtureEmission() const;
     float spotlightFixtureEmission() const;
 
-    static const std::array<glm::vec3, 5>& pointLightPositions();
+    static const array<glm::vec3, 5>& pointLightPositions();
     static glm::vec3 spotlightPosition();
     static glm::vec3 spotlightDirection();
 
 private:
-    bool pointLightEnabled(std::size_t index) const;
+    bool pointLightEnabled(size_t index) const;
     float fixtureEmission(bool enabled) const;
 
     bool directionalEnabled_{true};

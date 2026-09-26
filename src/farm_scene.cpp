@@ -8,6 +8,8 @@
 #include <array>
 #include <cmath>
 
+using namespace std;
+
 namespace
 {
 constexpr float EntranceZ = 15.5f;
@@ -22,7 +24,7 @@ const glm::vec3 ConcreteTint(0.88f, 0.88f, 0.86f);
 const glm::vec3 HayTint(1.00f, 0.84f, 0.48f);
 const glm::vec3 LeafTint(0.68f, 0.92f, 0.62f);
 
-using Glyph = std::array<const char*, 7>;
+using Glyph = array<const char*, 7>;
 
 Glyph glyphFor(char character)
 {
@@ -51,9 +53,9 @@ Glyph glyphFor(char character)
 }
 }
 
-const std::array<glm::vec3, 4>& FarmScene::futureCowPositions()
+const array<glm::vec3, 4>& FarmScene::futureCowPositions()
 {
-    static const std::array<glm::vec3, 4> positions = {
+    static const array<glm::vec3, 4> positions = {
         glm::vec3(-12.0f, 0.0f, -7.0f),
         glm::vec3( -9.0f, 0.0f, -7.5f),
         glm::vec3(  2.0f, 0.0f, -7.0f),
@@ -65,7 +67,7 @@ const std::array<glm::vec3, 4>& FarmScene::futureCowPositions()
 void FarmScene::render(const Shader& shader, float gateAngleDegrees,
                        float stallGateAngleDegrees, float calfShedDoorAngleDegrees,
                        float fanAngleDegrees,
-                       const std::array<float, 5>& pointFixtureEmissions,
+                       const array<float, 5>& pointFixtureEmissions,
                        float fenceFixtureEmission, float spotlightFixtureEmission) const
 {
     applyMaterial(shader, Materials::grass());
@@ -148,9 +150,9 @@ void FarmScene::drawFenceRun(const Shader& shader, const glm::vec3& start,
     const glm::vec3 difference = end - start;
     const float length = glm::length(difference);
     const glm::vec3 direction = difference / length;
-    const int sectionCount = std::max(1, static_cast<int>(std::ceil(length / 2.7f)));
+    const int sectionCount = max(1, static_cast<int>(ceil(length / 2.7f)));
     const float sectionLength = length / static_cast<float>(sectionCount);
-    const bool runsAlongX = std::abs(difference.x) > std::abs(difference.z);
+    const bool runsAlongX = abs(difference.x) > abs(difference.z);
 
     for (int i = 0; i <= sectionCount; ++i)
     {
@@ -282,7 +284,7 @@ void FarmScene::drawBillboard(const Shader& shader) const
         const float normalized = localX / halfWidth;
         const float localZ = curveDepth * (1.0f - normalized * normalized);
         const float slope = -2.0f * curveDepth * localX / (halfWidth * halfWidth);
-        const float angle = -glm::degrees(std::atan(slope));
+        const float angle = -glm::degrees(atan(slope));
         const glm::vec3 panelCenter = center + glm::vec3(localX, 0.0f, localZ);
 
         cubes_.drawTextured(shader, panelCenter,
@@ -374,7 +376,7 @@ void FarmScene::drawCurvedBlockText(const Shader& shader, const char* text,
                     (1.0f - normalized * normalized) + 0.19f;
                 const float slope = -2.0f * curveDepth * localX /
                                     (halfWidth * halfWidth);
-                const float angle = -glm::degrees(std::atan(slope));
+                const float angle = -glm::degrees(atan(slope));
                 cubes_.drawColored(shader,
                                    glm::vec3(x, center.y + (3.0f - row) * step, z),
                                    glm::vec3(size, size, 0.055f),
@@ -512,7 +514,7 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader, float stallGateAngleDe
         {
             cubes_.drawTextured(
                 shader,
-                glm::vec3(xCenter + strip * 0.42f, 0.48f + std::abs(strip) * 0.015f, -5.45f),
+                glm::vec3(xCenter + strip * 0.42f, 0.48f + abs(strip) * 0.015f, -5.45f),
                 glm::vec3(0.50f, 0.15f, 0.62f), textures_.hay,
                 glm::vec3(0.30f, 0.72f, 0.18f), glm::vec2(1.0f),
                 static_cast<float>(strip) * 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -578,7 +580,7 @@ void FarmScene::drawHayBale(const Shader& shader, const glm::vec3& position, flo
 
 void FarmScene::drawTrees(const Shader& shader) const
 {
-    const std::array<std::pair<glm::vec3, float>, 8> trees = {{
+    const array<pair<glm::vec3, float>, 8> trees = {{
         {glm::vec3(-15.8f, 0.0f, -14.5f), 1.05f},
         {glm::vec3(-16.4f, 0.0f,  7.2f), 0.90f},
         {glm::vec3(-16.6f, 0.0f, 13.0f), 0.82f},
@@ -712,13 +714,13 @@ void FarmScene::drawFan(const Shader& shader, const glm::vec3& position, float p
 }
 
 void FarmScene::drawLightFixtures(const Shader& shader,
-                                  const std::array<float, 5>& pointEmissions,
+                                  const array<float, 5>& pointEmissions,
                                   float spotlightEmission) const
 {
     const glm::vec3 warmBulb(1.0f, 0.78f, 0.40f);
     applyMaterial(shader, Materials::metal());
     const auto& positions = LightingSystem::pointLightPositions();
-    for (std::size_t index = 0; index < positions.size(); ++index)
+    for (size_t index = 0; index < positions.size(); ++index)
     {
         const glm::vec3 position = positions[index];
         const bool signLight = index >= 3;

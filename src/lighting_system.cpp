@@ -5,6 +5,8 @@
 #include <string>
 #include <cmath>
 
+using namespace std;
+
 LightingSystem::LightingSystem() = default;
 
 bool LightingSystem::pointLightsEnabled() const
@@ -24,7 +26,7 @@ void LightingSystem::togglePointLights()
     billboardLightEnabled_ = newState;
 }
 
-bool LightingSystem::pointLightEnabled(std::size_t index) const
+bool LightingSystem::pointLightEnabled(size_t index) const
 {
     if (index <= 2)
         return shedLightsEnabled_;
@@ -33,9 +35,9 @@ bool LightingSystem::pointLightEnabled(std::size_t index) const
     return billboardLightEnabled_;
 }
 
-const std::array<glm::vec3, 5>& LightingSystem::pointLightPositions()
+const array<glm::vec3, 5>& LightingSystem::pointLightPositions()
 {
-    static const std::array<glm::vec3, 5> positions = {
+    static const array<glm::vec3, 5> positions = {
         glm::vec3(-12.1f, 3.00f, -8.50f),
         glm::vec3( -7.9f, 3.00f, -8.50f),
         glm::vec3( 11.0f, 3.15f,-11.00f),
@@ -86,9 +88,9 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
     }
 
     const auto& positions = pointLightPositions();
-    for (std::size_t index = 0; index < positions.size(); ++index)
+    for (size_t index = 0; index < positions.size(); ++index)
     {
-        const std::string prefix = "pointLights[" + std::to_string(index) + "].";
+        const string prefix = "pointLights[" + to_string(index) + "].";
         const bool enabled = pointLightEnabled(index);
         shader.setVec3(prefix + "position", positions[index]);
         shader.setFloat(prefix + "constant", 1.0f);
@@ -116,8 +118,8 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
 
     shader.setVec3("spotLight.position", spotlightPosition());
     shader.setVec3("spotLight.direction", spotlightDirection());
-    shader.setFloat("spotLight.cutOff", std::cos(glm::radians(19.0f)));
-    shader.setFloat("spotLight.outerCutOff", std::cos(glm::radians(29.0f)));
+    shader.setFloat("spotLight.cutOff", cos(glm::radians(19.0f)));
+    shader.setFloat("spotLight.outerCutOff", cos(glm::radians(29.0f)));
     shader.setFloat("spotLight.constant", 1.0f);
     shader.setFloat("spotLight.linear", nightMode_ ? 0.045f : 0.07f);
     shader.setFloat("spotLight.quadratic", nightMode_ ? 0.009f : 0.017f);
@@ -148,10 +150,10 @@ float LightingSystem::fixtureEmission(bool enabled) const
     return nightMode_ ? 1.65f : 0.24f;
 }
 
-std::array<float, 5> LightingSystem::pointFixtureEmissions() const
+array<float, 5> LightingSystem::pointFixtureEmissions() const
 {
-    std::array<float, 5> emissions{};
-    for (std::size_t index = 0; index < emissions.size(); ++index)
+    array<float, 5> emissions{};
+    for (size_t index = 0; index < emissions.size(); ++index)
         emissions[index] = fixtureEmission(pointLightEnabled(index));
     return emissions;
 }

@@ -6,6 +6,8 @@
 #include <cmath>
 #include <algorithm>
 
+using namespace std;
+
 namespace
 {
 glm::mat4 makeRoot(const glm::vec3& position, float yaw, float scale)
@@ -54,20 +56,20 @@ void EntityRenderer::drawCow(const Shader& shader, const Cow& cow) const
     float bob = 0.0f;
     if (cow.state == CowState::Walking)
     {
-        gait = std::sin((cow.animationTime + cow.phase) * 5.0f) * 27.0f;
-        bob = std::abs(std::sin((cow.animationTime + cow.phase) * 5.0f)) * 0.045f;
+        gait = sin((cow.animationTime + cow.phase) * 5.0f) * 27.0f;
+        bob = abs(sin((cow.animationTime + cow.phase) * 5.0f)) * 0.045f;
     }
 
     float headDrop = 0.0f;
     if (cow.state == CowState::Grazing)
-        headDrop = 59.0f + std::sin(cow.headAnimationTime * 1.8f) * 5.0f;
+        headDrop = 59.0f + sin(cow.headAnimationTime * 1.8f) * 5.0f;
     else if (cow.state == CowState::Feeding)
-        headDrop = 42.0f + std::sin(cow.headAnimationTime * 1.4f) * 3.0f;
+        headDrop = 42.0f + sin(cow.headAnimationTime * 1.4f) * 3.0f;
 
     const float headTurn = (cow.state == CowState::Standing)
-        ? std::sin(cow.headAnimationTime * 0.8f) * 12.0f
-        : std::sin(cow.headAnimationTime * 1.1f) * 3.0f;
-    const float tail = std::sin((cow.animationTime + cow.phase) * 3.0f) * 20.0f;
+        ? sin(cow.headAnimationTime * 0.8f) * 12.0f
+        : sin(cow.headAnimationTime * 1.1f) * 3.0f;
+    const float tail = sin((cow.animationTime + cow.phase) * 3.0f) * 20.0f;
 
     drawBovine(shader, makeRoot(cow.position, cow.yaw, cow.scale),
                 cow.bodyColor, cow.patchColor, gait, headDrop, headTurn,
@@ -81,15 +83,15 @@ void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
     const bool feeding = calf.routeState == Calf::RouteState::Feeding;
     const bool stationary = feeding || calf.routeState == Calf::RouteState::Sheltered;
     const float gait = stationary ? 0.0f
-                                  : std::sin(calf.animationTime * 10.0f) * 36.0f;
+                                  : sin(calf.animationTime * 10.0f) * 36.0f;
     const float bob = stationary ? 0.0f
-                                 : std::abs(std::sin(calf.animationTime * 10.0f)) * 0.075f;
-    const float tail = std::sin(calf.animationTime * 6.0f) * 24.0f;
+                                 : abs(sin(calf.animationTime * 10.0f)) * 0.075f;
+    const float tail = sin(calf.animationTime * 6.0f) * 24.0f;
     const float headDrop = feeding
-        ? 50.0f + std::sin(calf.animationTime * 1.8f) * 4.0f : 0.0f;
+        ? 50.0f + sin(calf.animationTime * 1.8f) * 4.0f : 0.0f;
     drawBovine(shader, makeRoot(calf.position, calf.yaw, calf.scale),
                 calf.bodyColor, calf.patchColor, gait, headDrop,
-                std::sin(calf.animationTime * 2.0f) * 4.0f,
+                sin(calf.animationTime * 2.0f) * 4.0f,
                 tail, bob, 0.0f, true, false, false);
 }
 
@@ -111,7 +113,7 @@ void EntityRenderer::drawCalfTether(const Shader& shader, const Calf& calf) cons
     rope = glm::translate(rope, (collar + anchor) * 0.5f);
     const glm::vec3 axis = glm::cross(up, direction);
     if (glm::length(axis) > 0.0001f)
-        rope = glm::rotate(rope, std::acos(cosine), glm::normalize(axis));
+        rope = glm::rotate(rope, acos(cosine), glm::normalize(axis));
     else if (cosine < 0.0f)
         rope = glm::rotate(rope, glm::radians(180.0f),
                            glm::vec3(1.0f, 0.0f, 0.0f));
@@ -132,7 +134,7 @@ void EntityRenderer::drawBird(const Shader& shader, const Bird& bird) const
     glm::mat4 root = makeRoot(bird.position, bird.yaw, bird.scale);
     const bool moving = bird.mobile &&
                         bird.routeState != Calf::RouteState::Sheltered;
-    const float cycle = moving ? std::sin(bird.animationTime * 9.0f) : 0.0f;
+    const float cycle = moving ? sin(bird.animationTime * 9.0f) : 0.0f;
     const bool seatedHen = !bird.mobile && !bird.juvenile;
     const float bodyY = seatedHen ? 0.30f : 0.46f;
     const glm::vec3 orange(0.92f, 0.48f, 0.08f);
@@ -194,7 +196,7 @@ void EntityRenderer::drawTether(const Shader& shader, const Cow& cow) const
     rope = glm::translate(rope, (collarPoint + cow.tetherAnchor) * 0.5f);
     glm::vec3 axis = glm::cross(up, direction);
     if (glm::length(axis) > 0.0001f)
-        rope = glm::rotate(rope, std::acos(cosine), glm::normalize(axis));
+        rope = glm::rotate(rope, acos(cosine), glm::normalize(axis));
     else if (cosine < 0.0f)
         rope = glm::rotate(rope, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -420,13 +422,13 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
     const bool walking = worker.state == WorkerState::WalkingToCows ||
                          worker.state == WorkerState::WalkingHome;
     const bool feeding = worker.state == WorkerState::Feeding;
-    const float cycle = std::sin((worker.animationTime + worker.phase) * 6.0f);
+    const float cycle = sin((worker.animationTime + worker.phase) * 6.0f);
     const float legSwing = walking ? cycle * 31.0f : 0.0f;
     const float workSwing = walking ? -legSwing
                                     : (feeding ? 30.0f + cycle * 33.0f : 0.0f);
     glm::mat4 root = makeRoot(worker.position, worker.yaw, 1.0f);
     if (walking)
-        root = glm::translate(root, glm::vec3(0.0f, std::abs(cycle) * 0.035f, 0.0f));
+        root = glm::translate(root, glm::vec3(0.0f, abs(cycle) * 0.035f, 0.0f));
 
     const glm::vec3 trousers(0.12f, 0.16f, 0.22f);
     const glm::vec3 skin(0.58f, 0.34f, 0.20f);

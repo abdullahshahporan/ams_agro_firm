@@ -7,6 +7,8 @@
 
 #include <cmath>
 
+using namespace std;
+
 enum class CameraMovement
 {
     Forward,
@@ -85,9 +87,9 @@ private:
     void updateCameraVectors()
     {
         glm::vec3 front;
-        front.x = std::cos(glm::radians(Yaw)) * std::cos(glm::radians(Pitch));
-        front.y = std::sin(glm::radians(Pitch));
-        front.z = std::sin(glm::radians(Yaw)) * std::cos(glm::radians(Pitch));
+        front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.y = sin(glm::radians(Pitch));
+        front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
 
         Front = glm::normalize(front);
         Right = glm::normalize(glm::cross(Front, WorldUp));

@@ -10,9 +10,11 @@
 #include <cmath>
 #include <vector>
 
+using namespace std;
+
 namespace
 {
-void vertex(std::vector<float>& output, const glm::vec3& position,
+void vertex(vector<float>& output, const glm::vec3& position,
             const glm::vec3& normal, const glm::vec2& uv)
 {
     output.insert(output.end(), {
@@ -21,7 +23,7 @@ void vertex(std::vector<float>& output, const glm::vec3& position,
         uv.x, uv.y});
 }
 
-glm::vec2 cubicBezier(const std::array<glm::vec2, 4>& points, float t)
+glm::vec2 cubicBezier(const array<glm::vec2, 4>& points, float t)
 {
     const float s = 1.0f - t;
     return s * s * s * points[0]
@@ -30,7 +32,7 @@ glm::vec2 cubicBezier(const std::array<glm::vec2, 4>& points, float t)
          + t * t * t * points[3];
 }
 
-glm::vec2 cubicBezierDerivative(const std::array<glm::vec2, 4>& points, float t)
+glm::vec2 cubicBezierDerivative(const array<glm::vec2, 4>& points, float t)
 {
     const float s = 1.0f - t;
     return 3.0f * s * s * (points[1] - points[0])
@@ -38,7 +40,7 @@ glm::vec2 cubicBezierDerivative(const std::array<glm::vec2, 4>& points, float t)
          + 3.0f * t * t * (points[3] - points[2]);
 }
 
-glm::vec3 cubicBSpline(const std::array<glm::vec3, 4>& points, float t)
+glm::vec3 cubicBSpline(const array<glm::vec3, 4>& points, float t)
 {
     const float t2 = t * t;
     const float t3 = t2 * t;
@@ -67,7 +69,7 @@ CurvedRenderer::~CurvedRenderer()
 CurvedRenderer::Mesh CurvedRenderer::createMilkCan()
 {
     // Three joined cubic Bézier segments define radius against height.
-    const std::array<std::array<glm::vec2, 4>, 3> segments = {{
+    const array<array<glm::vec2, 4>, 3> segments = {{
         {{glm::vec2(0.34f, 0.00f), glm::vec2(0.47f, 0.05f),
           glm::vec2(0.50f, 0.30f), glm::vec2(0.50f, 0.76f)}},
         {{glm::vec2(0.50f, 0.76f), glm::vec2(0.50f, 1.02f),
@@ -77,7 +79,7 @@ CurvedRenderer::Mesh CurvedRenderer::createMilkCan()
     }};
     constexpr unsigned int profileSamples = 12;
     constexpr unsigned int radialSamples = 32;
-    std::vector<glm::vec4> profile; // radius, height, dr, dy
+    vector<glm::vec4> profile; // radius, height, dr, dy
     for (unsigned int segment = 0; segment < segments.size(); ++segment)
     {
         for (unsigned int sample = (segment == 0 ? 0U : 1U);
@@ -90,16 +92,16 @@ CurvedRenderer::Mesh CurvedRenderer::createMilkCan()
         }
     }
 
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+    vector<float> vertices;
+    vector<unsigned int> indices;
     for (unsigned int row = 0; row < profile.size(); ++row)
     {
         for (unsigned int ring = 0; ring <= radialSamples; ++ring)
         {
             const float u = static_cast<float>(ring) / radialSamples;
             const float angle = u * glm::two_pi<float>();
-            const float c = std::cos(angle);
-            const float s = std::sin(angle);
+            const float c = cos(angle);
+            const float s = sin(angle);
             const glm::vec4 p = profile[row];
             glm::vec3 normal(p.w * c, -p.z, p.w * s);
             normal = glm::normalize(normal);
@@ -122,7 +124,7 @@ CurvedRenderer::Mesh CurvedRenderer::createMilkCan()
 
 CurvedRenderer::Mesh CurvedRenderer::createSplinePipe()
 {
-    const std::array<glm::vec3, 7> controls = {{
+    const array<glm::vec3, 7> controls = {{
         glm::vec3(7.2f, 0.45f, 3.8f), glm::vec3(8.0f, 0.52f, 3.3f),
         glm::vec3(9.2f, 0.65f, 2.8f), glm::vec3(10.7f, 0.95f, 2.3f),
         glm::vec3(12.0f, 1.45f, 1.8f), glm::vec3(12.8f, 2.20f, 1.2f),
@@ -130,10 +132,10 @@ CurvedRenderer::Mesh CurvedRenderer::createSplinePipe()
     }};
     constexpr unsigned int samplesPerSegment = 10;
     constexpr unsigned int ringSamples = 12;
-    std::vector<glm::vec3> centers;
+    vector<glm::vec3> centers;
     for (unsigned int segment = 0; segment + 3 < controls.size(); ++segment)
     {
-        const std::array<glm::vec3, 4> points = {{
+        const array<glm::vec3, 4> points = {{
             controls[segment], controls[segment + 1],
             controls[segment + 2], controls[segment + 3]}};
         for (unsigned int sample = (segment == 0 ? 0U : 1U);
@@ -142,14 +144,14 @@ CurvedRenderer::Mesh CurvedRenderer::createSplinePipe()
                 static_cast<float>(sample) / samplesPerSegment));
     }
 
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+    vector<float> vertices;
+    vector<unsigned int> indices;
     for (unsigned int row = 0; row < centers.size(); ++row)
     {
         const glm::vec3 before = centers[row == 0 ? row : row - 1];
         const glm::vec3 after = centers[row + 1 < centers.size() ? row + 1 : row];
         const glm::vec3 tangent = glm::normalize(after - before);
-        const glm::vec3 reference = std::abs(tangent.y) > 0.92f
+        const glm::vec3 reference = abs(tangent.y) > 0.92f
             ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
         const glm::vec3 side = glm::normalize(glm::cross(tangent, reference));
         const glm::vec3 up = glm::normalize(glm::cross(side, tangent));
@@ -157,7 +159,7 @@ CurvedRenderer::Mesh CurvedRenderer::createSplinePipe()
         {
             const float u = static_cast<float>(ring) / ringSamples;
             const float angle = u * glm::two_pi<float>();
-            const glm::vec3 radial = side * std::cos(angle) + up * std::sin(angle);
+            const glm::vec3 radial = side * cos(angle) + up * sin(angle);
             vertex(vertices, centers[row] + radial * 0.13f, radial,
                    glm::vec2(u, static_cast<float>(row) * 0.24f));
         }
@@ -182,8 +184,8 @@ CurvedRenderer::Mesh CurvedRenderer::createRuledRoof()
     constexpr float halfWidth = 4.25f;
     constexpr float frontZ = 3.62f;
     constexpr float backZ = -3.62f;
-    std::vector<float> vertices;
-    std::vector<unsigned int> indices;
+    vector<float> vertices;
+    vector<unsigned int> indices;
     for (unsigned int uIndex = 0; uIndex <= curveSamples; ++uIndex)
     {
         const float u = static_cast<float>(uIndex) / curveSamples;
