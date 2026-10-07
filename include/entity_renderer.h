@@ -4,16 +4,34 @@
 #include "animation_system.h"
 #include "cube_renderer.h"
 #include "primitive_renderer.h"
+#include <vector>
 
 class EntityRenderer
 {
 public:
     EntityRenderer(const CubeRenderer& cubes, const PrimitiveRenderer& primitives)
-        : cubes_(cubes), primitives_(primitives) {}
+        : cubes_(cubes), primitives_(primitives), bovineHead_(createBovineHead()),
+          bovineBody_(createBovineBody(false)), bullBody_(createBovineBody(true)) {}
+
+    ~EntityRenderer();
+    EntityRenderer(const EntityRenderer&) = delete;
+    EntityRenderer& operator=(const EntityRenderer&) = delete;
 
     void render(const Shader& shader, const AnimationSystem& animations) const;
 
 private:
+    struct BovineMesh
+    {
+        unsigned int vao{0};
+        unsigned int vbo{0};
+        unsigned int ebo{0};
+        int indexCount{0};
+    };
+    static BovineMesh createBovineHead();
+    static BovineMesh createBovineBody(bool bull);
+    static BovineMesh createBovineSurface(const vector<glm::vec4>& rings);
+    void drawBovineMesh(const BovineMesh& mesh, const Shader& shader,
+                        const glm::mat4& model, const glm::vec3& color) const;
     void drawCow(const Shader& shader, const Cow& cow) const;
     void drawTether(const Shader& shader, const Cow& cow) const;
     void drawCalf(const Shader& shader, const Calf& calf) const;
@@ -35,6 +53,9 @@ private:
 
     const CubeRenderer& cubes_;
     const PrimitiveRenderer& primitives_;
+    BovineMesh bovineHead_;
+    BovineMesh bovineBody_;
+    BovineMesh bullBody_;
 };
 
 #endif

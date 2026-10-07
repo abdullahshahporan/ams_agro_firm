@@ -23,6 +23,15 @@
             "detail": "Build and run the complete AMS Agro Farm OpenGL project."
         },
         {
+            "label": "Run AMS Agro Farm Guided Simulation",
+            "type": "shell",
+            "command": "powershell",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}\\run_simulation.ps1"],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": ["$gcc"],
+            "detail": "Build and show the 12-chapter guided simulation of the real farm."
+        },
+        {
             "label": "Build AMS Agro Farm (MinGW)",
             "type": "shell",
             "command": "powershell",

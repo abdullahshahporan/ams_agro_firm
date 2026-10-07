@@ -27,6 +27,11 @@ private:
         int indexCount{0};
     };
 
+    // Item mesh generation and placement: src/curves/.
+    void drawMilkCan(const Shader& shader, const FarmTextures& textures) const;
+    void drawIrrigationPipe(const Shader& shader, const FarmTextures& textures) const;
+    void drawCurvedRoof(const Shader& shader, const FarmTextures& textures) const;
+
     static Mesh createMilkCan();
     static Mesh createSplinePipe();
     static Mesh createRuledRoof();

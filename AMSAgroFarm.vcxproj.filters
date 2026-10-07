@@ -5,6 +5,9 @@
       <UniqueIdentifier>{93B5507D-86BA-4E77-8C95-85D4C2606544}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx</Extensions>
     </Filter>
+    <Filter Include="Source Files\Items" />
+    <Filter Include="Source Files\Animals" />
+    <Filter Include="Source Files\Curves" />
     <Filter Include="Header Files">
       <UniqueIdentifier>{4E766C41-FA8A-4B7C-B68A-D5B0B1788492}</UniqueIdentifier>
       <Extensions>h;hpp;hxx</Extensions>
@@ -26,6 +29,36 @@
     <ClCompile Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.cpp">
       <Filter>External Dependencies</Filter>
     </ClCompile>
+    <ClCompile Include="src\animals\bovine_model.cpp"><Filter>Source Files\Animals</Filter></ClCompile>
+    <ClCompile Include="src\animals\calf.cpp"><Filter>Source Files\Animals</Filter></ClCompile>
+    <ClCompile Include="src\animals\cow.cpp"><Filter>Source Files\Animals</Filter></ClCompile>
+    <ClCompile Include="src\animals\farmer.cpp"><Filter>Source Files\Animals</Filter></ClCompile>
+    <ClCompile Include="src\animals\poultry.cpp"><Filter>Source Files\Animals</Filter></ClCompile>
+    <ClCompile Include="src\curves\curved_roof.cpp"><Filter>Source Files\Curves</Filter></ClCompile>
+    <ClCompile Include="src\curves\irrigation_pipe.cpp"><Filter>Source Files\Curves</Filter></ClCompile>
+    <ClCompile Include="src\curves\milk_can.cpp"><Filter>Source Files\Curves</Filter></ClCompile>
+    <ClCompile Include="src\items\barn.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\block_text.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\boundary_fence.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\ceiling_fan.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\cow_shed.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\cow_stalls.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\crate.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\entrance_gate.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\farm_props.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\farm_sign.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\feed_sack.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\ground.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\hay_stack.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\inspection_drone.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\light_fixtures.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\owner_billboard.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\poultry_shed.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\road.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\surroundings.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\trees.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\water_tank.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\worker_house.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\animation_system.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\cube_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\curved_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -33,13 +66,22 @@
     <ClCompile Include="src\farm_scene.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\lighting_system.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\main.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\simulation.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\primitive_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\ray_trace_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\texture_manager.cpp"><Filter>Source Files</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\CSE 4208 - Graphics\Lab_4\codes\stb_image.h">
       <Filter>External Dependencies</Filter>
     </ClInclude>
+    <ClInclude Include="include\animals\calf.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\animals\cow.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\animals\farmer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\animals\poultry.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\shared\curve_vertex.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\shared\entity_transform.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\shared\farm_style.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\animation_system.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\camera.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\collision_system.h"><Filter>Header Files</Filter></ClInclude>
@@ -50,12 +92,21 @@
     <ClInclude Include="include\lighting_system.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\material.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\primitive_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\ray_trace_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\shader.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\simulation.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\texture_manager.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\terrain_renderer.h"><Filter>Header Files</Filter></ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\gouraud.fs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\gouraud.vs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\raytrace.fs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\raytrace.vs"><Filter>Shaders</Filter></None>
     <None Include="shaders\texture.fs"><Filter>Shaders</Filter></None>
     <None Include="shaders\texture.vs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\simulation.vs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\simulation.fs"><Filter>Shaders</Filter></None>
     <None Include="textures\*.png"><Filter>Textures</Filter></None>
   </ItemGroup>
 </Project>

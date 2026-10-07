@@ -4,11 +4,14 @@
 #include "cube_renderer.h"
 #include "primitive_renderer.h"
 #include "texture_manager.h"
+#include "terrain_renderer.h"
 
 #include <array>
 #include <glm/glm.hpp>
 
 using namespace std;
+
+class LightingSystem;
 
 class FarmScene
 {
@@ -19,12 +22,15 @@ public:
 
     void render(const Shader& shader, float gateAngleDegrees, float stallGateAngleDegrees,
                 float calfShedDoorAngleDegrees, float fanAngleDegrees,
-                const array<float, 5>& pointFixtureEmissions,
-                float fenceFixtureEmission, float spotlightFixtureEmission) const;
+                const LightingSystem& lighting,
+                bool workerDoorOpen, bool pickupHayAvailable,
+                int deliveredHayLoads) const;
     static const array<glm::vec3, 4>& futureCowPositions();
 
 private:
+    // Definitions are organized by item in src/items/ (see CODE_MAP.md).
     void drawGround(const Shader& shader) const;
+    void drawSurroundings(const Shader& shader) const;
     void drawRoad(const Shader& shader) const;
     void drawFarmBoundary(const Shader& shader, float lampEmission) const;
     void drawFenceRun(const Shader& shader, const glm::vec3& start,
@@ -46,23 +52,24 @@ private:
     void drawBarn(const Shader& shader) const;
     void drawCalfShedSideDoor(const Shader& shader, float angleDegrees) const;
     void drawTrough(const Shader& shader, const glm::vec3& position, float length) const;
-    void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees) const;
+    void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees,
+                            int deliveredHayLoads) const;
     void drawStallGate(const Shader& shader, const glm::vec3& hinge,
                        float angleDegrees) const;
 
-    void drawHayArea(const Shader& shader) const;
+    void drawHayArea(const Shader& shader, bool pickupHayAvailable) const;
     void drawHayBale(const Shader& shader, const glm::vec3& position, float rotation) const;
     void drawTrees(const Shader& shader) const;
     void drawTree(const Shader& shader, const glm::vec3& position, float scale) const;
     void drawWaterFacility(const Shader& shader) const;
     void drawPoultryShed(const Shader& shader) const;
-    void drawWorkerHouse(const Shader& shader) const;
+    void drawWorkerHouse(const Shader& shader, bool doorOpen) const;
 
     void drawShedFans(const Shader& shader, float fanAngleDegrees) const;
     void drawFan(const Shader& shader, const glm::vec3& position, float parentAngle) const;
+    void drawInspectionDrone(const Shader& shader, const LightingSystem& lighting) const;
     void drawLightFixtures(const Shader& shader,
-                           const array<float, 5>& pointEmissions,
-                           float spotlightEmission) const;
+                           const LightingSystem& lighting) const;
 
     void drawFarmProps(const Shader& shader) const;
     void drawCrate(const Shader& shader, const glm::vec3& position, float rotation) const;
@@ -71,6 +78,7 @@ private:
     const CubeRenderer& cubes_;
     const PrimitiveRenderer& primitives_;
     const FarmTextures& textures_;
+    TerrainRenderer terrain_;
 };
 
 #endif

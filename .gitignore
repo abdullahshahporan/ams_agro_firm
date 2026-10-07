@@ -3,6 +3,7 @@
 # Local Markdown notes/prompts (keep public project and dependency docs)
 *.md
 !README.md
+!CODE_MAP.md
 !lib/MinGW/GLFW-LICENSE.md
 
 # Compiled programs and intermediate objects
@@ -18,6 +19,7 @@
 *.lastbuildstate
 
 # Build output directories
+/report/
 Debug/
 Release/
 x64/

@@ -16,6 +16,7 @@ public:
     CubeRenderer& operator=(const CubeRenderer&) = delete;
 
     void setTexturesEnabled(bool enabled) { texturesEnabled_ = enabled; }
+    bool texturesEnabled() const { return texturesEnabled_; }
 
     void drawColored(
         const Shader& shader,

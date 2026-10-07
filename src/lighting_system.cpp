@@ -1,6 +1,8 @@
 #include "lighting_system.h"
+#include "terrain_renderer.h"
 
 #include <glm/geometric.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <string>
 #include <cmath>
@@ -9,21 +11,56 @@ using namespace std;
 
 LightingSystem::LightingSystem() = default;
 
+void LightingSystem::update(float deltaTime)
+{
+    if (movingLightEnabled_ && movingLightAnimated_)
+        movingLightPhase_ = fmod(movingLightPhase_ + deltaTime * 0.55f,
+                                 glm::two_pi<float>());
+    if (spotlightSweep_)
+        spotlightPhase_ = fmod(spotlightPhase_ + deltaTime * 0.75f,
+                               glm::two_pi<float>());
+}
+
+glm::vec3 LightingSystem::movingLightPosition() const
+{
+    return glm::vec3(1.0f + 3.5f * cos(movingLightPhase_),
+                     4.0f + 0.3f * sin(2.0f * movingLightPhase_),
+                     2.0f + 3.0f * sin(movingLightPhase_));
+}
+
+void LightingSystem::aimSpotlight(float yawDegrees, float pitchDegrees)
+{
+    // Manual input takes over from the automatic sweep.
+    if (spotlightSweep_)
+        spotlightYaw_ += sin(spotlightPhase_) * 35.0f;
+    spotlightSweep_ = false;
+    spotlightYaw_ = glm::clamp(spotlightYaw_ + yawDegrees, -55.0f, 55.0f);
+    spotlightPitch_ = glm::clamp(spotlightPitch_ + pitchDegrees, -75.0f, -10.0f);
+}
+
+glm::vec3 LightingSystem::activeSpotlightDirection() const
+{
+    const float yaw = glm::radians(spotlightYaw_ +
+        (spotlightSweep_ ? sin(spotlightPhase_) * 35.0f : 0.0f));
+    const float pitch = glm::radians(spotlightPitch_);
+    return glm::normalize(glm::vec3(sin(yaw) * cos(pitch), sin(pitch),
+                                    -cos(yaw) * cos(pitch)));
+}
+
 bool LightingSystem::pointLightsEnabled() const
 {
     return shedLightsEnabled_ || fenceLightsEnabled_ ||
-           bannerLightEnabled_ || billboardLightEnabled_;
+           bannerLightEnabled_ || billboardLightEnabled_ || movingLightEnabled_;
 }
 
 void LightingSystem::togglePointLights()
 {
-    const bool allEnabled = shedLightsEnabled_ && fenceLightsEnabled_ &&
-                            bannerLightEnabled_ && billboardLightEnabled_;
-    const bool newState = !allEnabled;
+    const bool newState = !pointLightsEnabled();
     shedLightsEnabled_ = newState;
     fenceLightsEnabled_ = newState;
     bannerLightEnabled_ = newState;
     billboardLightEnabled_ = newState;
+    movingLightEnabled_ = newState;
 }
 
 bool LightingSystem::pointLightEnabled(size_t index) const
@@ -62,9 +99,15 @@ glm::vec3 LightingSystem::spotlightDirection()
 void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosition) const
 {
     shader.setVec3("viewPos", viewPosition);
+    // The last terrain ring is already fully sky-colored before it can be
+    // seen, so elevated cameras never reveal the edge of a finite ground slab.
+    shader.setVec3("fogColor", clearColor());
+    shader.setFloat("fogStart", TerrainRenderer::FogStart);
+    shader.setFloat("fogEnd", TerrainRenderer::FogEnd);
     shader.setBool("directionalLightEnabled", directionalEnabled_);
     shader.setBool("pointLightsEnabled",
-                   shedLightsEnabled_ || bannerLightEnabled_ || billboardLightEnabled_);
+                   shedLightsEnabled_ || bannerLightEnabled_ || billboardLightEnabled_
+                   || movingLightEnabled_);
     shader.setBool("spotLightEnabled", spotlightEnabled_);
     shader.setBool("ambientEnabled", ambientEnabled_);
     shader.setBool("diffuseEnabled", diffuseEnabled_);
@@ -116,8 +159,20 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
         }
     }
 
+    // Sixth point light travels with the visible inspection drone.
+    shader.setVec3("pointLights[5].position", movingLightPosition());
+    shader.setFloat("pointLights[5].constant", 1.0f);
+    shader.setFloat("pointLights[5].linear", 0.045f);
+    shader.setFloat("pointLights[5].quadratic", 0.012f);
+    shader.setVec3("pointLights[5].ambient", movingLightEnabled_
+        ? glm::vec3(0.005f, 0.012f, 0.020f) : glm::vec3(0.0f));
+    shader.setVec3("pointLights[5].diffuse", movingLightEnabled_
+        ? glm::vec3(0.65f, 1.45f, 2.2f) : glm::vec3(0.0f));
+    shader.setVec3("pointLights[5].specular", movingLightEnabled_
+        ? glm::vec3(0.65f, 1.2f, 1.6f) : glm::vec3(0.0f));
+
     shader.setVec3("spotLight.position", spotlightPosition());
-    shader.setVec3("spotLight.direction", spotlightDirection());
+    shader.setVec3("spotLight.direction", activeSpotlightDirection());
     shader.setFloat("spotLight.cutOff", cos(glm::radians(19.0f)));
     shader.setFloat("spotLight.outerCutOff", cos(glm::radians(29.0f)));
     shader.setFloat("spotLight.constant", 1.0f);

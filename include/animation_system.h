@@ -4,123 +4,12 @@
 #include <array>
 #include <glm/glm.hpp>
 
+#include "animals/cow.h"
+#include "animals/calf.h"
+#include "animals/poultry.h"
+#include "animals/farmer.h"
+
 using namespace std;
-
-enum class CowState
-{
-    Standing,
-    Walking,
-    Grazing,
-    Feeding
-};
-
-enum class CattleRole
-{
-    MilchCow,
-    Ox
-};
-
-struct Cow
-{
-    glm::vec3 position;
-    float yaw;
-    float scale;
-    CowState state;
-    float speed;
-    float animationTime;
-    float headAnimationTime;
-    float phase;
-    glm::vec3 pathA;
-    glm::vec3 pathB;
-    bool targetingB;
-    glm::vec3 bodyColor;
-    glm::vec3 patchColor;
-    float hornScale;
-    bool tied;
-    glm::vec3 tetherAnchor;
-    CattleRole role;
-};
-
-struct Calf
-{
-    glm::vec3 position;
-    float yaw;
-    float scale;
-    float speed;
-    float animationTime;
-    float pathAngle;
-    glm::vec3 pathCenter;
-    glm::vec2 pathRadius;
-    float direction;
-    glm::vec3 bodyColor;
-    glm::vec3 patchColor;
-    glm::vec3 shelterPosition;
-    glm::vec3 feedingPosition;
-    enum class RouteState
-    {
-        Roaming,
-        GoingToShelter,
-        Sheltered,
-        GoingToField,
-        GoingToFeed,
-        Feeding
-    } routeState;
-};
-
-enum class CalfDestination
-{
-    Home,
-    Field,
-    FeedingArea
-};
-
-enum class BirdSpecies
-{
-    Chicken,
-    Duck
-};
-
-struct Bird
-{
-    BirdSpecies species;
-    glm::vec3 position;
-    glm::vec3 shelterPosition;
-    glm::vec3 pathCenter;
-    glm::vec2 pathRadius;
-    float pathAngle;
-    float direction;
-    float speed;
-    float scale;
-    float yaw;
-    float animationTime;
-    bool mobile;
-    bool juvenile;
-    glm::vec3 color;
-    Calf::RouteState routeState;
-};
-
-enum class WorkerState
-{
-    HomeIdle,
-    WalkingToCows,
-    ReadyAtCows,
-    Feeding,
-    WalkingHome
-};
-
-struct Worker
-{
-    glm::vec3 position;
-    float yaw;
-    WorkerState state;
-    float speed;
-    float animationTime;
-    float phase;
-    glm::vec3 pathA;
-    glm::vec3 pathB;
-    bool targetingB;
-    glm::vec3 shirtColor;
-};
 
 class AnimationSystem
 {
@@ -134,6 +23,11 @@ public:
     void sendCalvesToFeed();
     void commandWorker();
     void sendWorkerHome();
+    void toggleManualWorker();
+    bool interactWithWorker();
+    void turnManualWorker(float angleDegrees);
+    void moveManualWorker(const glm::vec3& position, float deltaTime);
+    void stopManualWorker() { workers_[0].manualWalking = false; }
 
     void toggleAdultCows() { adultCowsOn_ = !adultCowsOn_; }
     void toggleCalves() { calvesOn_ = !calvesOn_; }
@@ -144,6 +38,9 @@ public:
     bool calvesOn() const { return calvesOn_; }
     bool headMotionOn() const { return headMotionOn_; }
     bool workersOn() const { return workers_[0].state != WorkerState::HomeIdle; }
+    bool manualWorkerControl() const { return manualWorkerControl_; }
+    bool workerDoorOpen() const { return workers_[0].state != WorkerState::HomeIdle; }
+    int deliveredHayLoads() const { return workers_[0].deliveredLoads; }
     bool fansOn() const { return fansOn_; }
     float fanAngle() const { return fanAngle_; }
     bool nightMode() const { return nightMode_; }
@@ -158,6 +55,17 @@ public:
     const array<Bird, 7>& birds() const { return birds_; }
 
 private:
+    // Each item owns its initialization and update code in src/animals/.
+    void initializeCows();
+    void initializeCalves();
+    void initializeWorkers();
+    void initializeBirds();
+    void updateCows(float deltaTime);
+    void updateCalves(float deltaTime);
+    void updateBirds(float deltaTime);
+    void updateWorkers(float deltaTime);
+    void updateFans(float deltaTime);
+
     static void updateCowPatrol(Cow& cow, float deltaTime);
     static void updateCalfPath(Calf& calf, float deltaTime);
     static void updateCalfNavigation(Calf& calf, float deltaTime,
@@ -180,6 +88,7 @@ private:
     bool fansOn_{true};
     bool nightMode_{false};
     bool shelterRequested_{false};
+    bool manualWorkerControl_{false};
     CalfDestination calfDestination_{CalfDestination::Home};
     float fanAngle_{0.0f};
 };

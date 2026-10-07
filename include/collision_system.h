@@ -13,11 +13,12 @@ class CollisionSystem
 public:
     static bool canOccupy(const glm::vec3& position, float gateAngleDegrees,
                           float stallGateAngleDegrees,
-                          float calfShedDoorAngleDegrees)
+                          float calfShedDoorAngleDegrees,
+                          bool workerDoorOpen = false)
     {
         constexpr float radius = 0.38f;
-        if (position.y < 0.45f || position.y > 30.0f ||
-            abs(position.x) > 25.0f || abs(position.z) > 28.0f)
+        if (position.y < 0.45f || position.y > 60.0f ||
+            abs(position.x) > 125.0f || abs(position.z) > 125.0f)
             return false;
 
         struct Box { float minX, maxX, minZ, maxZ, height; };
@@ -52,8 +53,11 @@ public:
             {-14.3f,-13.8f,10.4f,11.0f,4.3f},   // billboard supports
             { -6.2f, -5.7f,10.4f,11.0f,4.3f}
         }};
-        for (const Box& box : obstacles)
+        for (size_t index = 0; index < obstacles.size(); ++index)
         {
+            if (workerDoorOpen && index == 25) // opened worker-house door
+                continue;
+            const Box& box = obstacles[index];
             // Position is the viewer's eye, so include an approximate body
             // height below it when testing low troughs, cattle, and rails.
             if (position.y <= box.height + 1.8f &&
@@ -67,9 +71,21 @@ public:
             {16.0f,6.0f}, {13.6f,12.5f}, {-2.0f,-16.0f}, {5.5f,-16.1f}
         }};
         if (position.y < 7.6f)
+        {
             for (const glm::vec2& tree : trees)
                 if (glm::length(glm::vec2(position.x, position.z) - tree) < 0.72f)
                     return false;
+            for (int index = 0; index < 11; ++index)
+            {
+                const float z = -69.0f + index * 12.0f;
+                const float offset = static_cast<float>(index % 3) * 2.4f;
+                if (glm::length(glm::vec2(position.x, position.z) -
+                                glm::vec2(-24.5f - offset, z)) < 0.72f ||
+                    glm::length(glm::vec2(position.x, position.z) -
+                                glm::vec2(24.5f + offset, z + 4.0f)) < 0.72f)
+                    return false;
+            }
+        }
 
         // The perimeter is a thin collision plane with only the entrance gap.
         if (position.y < 5.3f)

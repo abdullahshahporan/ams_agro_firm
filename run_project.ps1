@@ -1,5 +1,6 @@
 param(
-    [switch]$BuildOnly
+    [switch]$BuildOnly,
+    [switch]$Simulation
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,8 +33,8 @@ foreach ($requiredPath in $requiredPaths) {
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
 
 $projectSources = @(
-    Get-ChildItem -LiteralPath $sourceDirectory -Filter '*.cpp' -File |
-        Sort-Object Name |
+    Get-ChildItem -LiteralPath $sourceDirectory -Filter '*.cpp' -File -Recurse |
+        Sort-Object FullName |
         ForEach-Object FullName
 )
 
@@ -73,10 +74,11 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Build successful: $outputExecutable" -ForegroundColor Green
 
 if (-not $BuildOnly) {
-    Write-Host 'Launching Final Module 5...' -ForegroundColor Cyan
+    Write-Host $(if ($Simulation) { 'Launching guided farm simulation...' } else { 'Launching AMS Agro Farm...' }) -ForegroundColor Cyan
     Push-Location $projectRoot
     try {
-        & $outputExecutable
+        if ($Simulation) { & $outputExecutable --simulation }
+        else { & $outputExecutable }
     }
     finally {
         Pop-Location
