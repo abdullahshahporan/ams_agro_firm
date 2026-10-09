@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <algorithm>
+#include "collision_system.h"
 
 using namespace std;
 using namespace EntityTransform;
@@ -14,7 +15,8 @@ using namespace EntityTransform;
 void EntityRenderer::drawCalf(const Shader& shader, const Calf& calf) const
 {
     const bool feeding = calf.routeState == Calf::RouteState::Feeding;
-    const bool stationary = feeding || calf.routeState == Calf::RouteState::Sheltered;
+    const bool stationary = feeding || calf.routeState == Calf::RouteState::Sheltered
+        || (calf.routeState==Calf::RouteState::Manual && !calf.manualWalking);
     const float gait = stationary ? 0.0f
                                   : sin(calf.animationTime * 10.0f) * 36.0f;
     const float bob = stationary ? 0.0f
@@ -82,6 +84,7 @@ void AnimationSystem::toggleCalfShed()
 {
     if (nightMode_)
         return;
+    if(manualCalfControl_) {resumeCalf(calves_[selectedCalf_]);manualCalfControl_=false;}
 
     calfDestination_ = (calfDestination_ == CalfDestination::Home)
         ? CalfDestination::Field : CalfDestination::Home;
@@ -94,6 +97,7 @@ void AnimationSystem::sendCalvesToFeed()
 {
     if (nightMode_)
         return;
+    if(manualCalfControl_) {resumeCalf(calves_[selectedCalf_]);manualCalfControl_=false;}
 
     calfDestination_ = CalfDestination::FeedingArea;
     for (Calf& calf : calves_)
@@ -104,10 +108,11 @@ bool AnimationSystem::calfShedDoorNeeded() const
 {
     for (const Calf& calf : calves_)
     {
+        if(calf.routeState==Calf::RouteState::Manual && calf.position.x < -3.6f && abs(calf.position.z+9.62f)<2.5f) return true;
         // Keep the door open only while a calf is inside or crossing the
         // doorway envelope; close it once both animals have cleared the wall.
         if (calf.routeState == Calf::RouteState::GoingToField &&
-            calf.position.x < -5.05f)
+            calf.position.x < -3.6f)
             return true;
         if ((calf.routeState == Calf::RouteState::GoingToShelter ||
              calf.routeState == Calf::RouteState::GoingToFeed) &&
@@ -147,7 +152,7 @@ void AnimationSystem::updateCalfPath(Calf& calf, float deltaTime)
         0.0f,
          calf.pathRadius.y * cosine * calf.direction);
     if (glm::length2(tangent) > 0.000001f)
-        calf.yaw = yawForDirection(glm::normalize(tangent));
+        calf.yaw = FarmInteraction::turnToward(calf.yaw,yawForDirection(glm::normalize(tangent)),deltaTime);
 }
 
 void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
@@ -213,8 +218,9 @@ void AnimationSystem::updateCalfNavigation(Calf& calf, float deltaTime,
 
 void AnimationSystem::updateCalves(float deltaTime)
 {
-    for (Calf& calf : calves_)
+    for (size_t index=0;index<calves_.size();++index)
     {
+        Calf& calf=calves_[index];
         // R is a true calf-movement pause, including commanded navigation
         // and feeding motion rather than only the free-roaming loop.
         if (!calvesOn_)
@@ -228,10 +234,60 @@ void AnimationSystem::updateCalves(float deltaTime)
                  calf.routeState == Calf::RouteState::GoingToField ||
                  calf.routeState == Calf::RouteState::GoingToFeed)
         {
+            // The side doorway only has room for one calf. Stagger the second
+            // animal so the two bodies never overlap in the opening.
+            if(index==1)
+            {
+                if(calf.routeState==Calf::RouteState::GoingToField &&
+                   calves_[0].position.x<-4.35f)continue;
+                if(calf.routeState==Calf::RouteState::GoingToShelter &&
+                   calves_[0].routeState!=Calf::RouteState::Sheltered)continue;
+            }
             calf.animationTime += deltaTime;
             updateCalfNavigation(calf, deltaTime, calfDestination_);
         }
         else if (calf.routeState == Calf::RouteState::Feeding)
             calf.animationTime += deltaTime;
     }
+}
+
+void AnimationSystem::resumeCalf(Calf& calf)
+{
+    calf.manualWalking=false;
+    calf.routeState=calfDestination_==CalfDestination::Home?Calf::RouteState::GoingToShelter:
+        (calfDestination_==CalfDestination::Field?Calf::RouteState::GoingToField:Calf::RouteState::GoingToFeed);
+}
+void AnimationSystem::toggleManualCalf()
+{
+    if(nightMode_)return;
+    if(manualCalfControl_){resumeCalf(calves_[selectedCalf_]);manualCalfControl_=false;return;}
+    if(manualWorkerControl_)sendWorkerHome();
+    manualCalfControl_=true;calves_[selectedCalf_].routeState=Calf::RouteState::Manual;
+    calves_[selectedCalf_].manualWalking=false;calvesOn_=true;
+}
+void AnimationSystem::selectNextCalf()
+{
+    if(manualCalfControl_)resumeCalf(calves_[selectedCalf_]);
+    selectedCalf_=(selectedCalf_+1)%calves_.size();
+    if(manualCalfControl_){calves_[selectedCalf_].routeState=Calf::RouteState::Manual;calves_[selectedCalf_].manualWalking=false;}
+}
+void AnimationSystem::driveManualCalf(float forward,float turn,float dt,float gate,float stall,float calfDoor)
+{
+    if(!manualCalfControl_||nightMode_||!calvesOn_||!isfinite(dt)||dt<=0)return;
+    Calf& calf=calves_[selectedCalf_];calf.manualWalking=false;
+    calf.yaw=fmod(calf.yaw+glm::clamp(turn,-1.0f,1.0f)*110.0f*dt,360.0f);
+    const float angle=glm::radians(calf.yaw);
+    const glm::vec3 motion=glm::vec3(cos(angle),0,-sin(angle))*glm::clamp(forward,-1.0f,1.0f)*calf.speed*min(dt,.1f);
+    const int steps=max(1,static_cast<int>(ceil(glm::length(motion)/.04f)));
+    const glm::vec3 start=calf.position;
+    for(int i=1;i<=steps;++i)
+    {
+        const glm::vec3 candidate=start+motion*(static_cast<float>(i)/steps);
+        if(!CollisionSystem::canOccupy(candidate+glm::vec3(0,1.2f,0),gate,stall,calfDoor,
+                                       workerDoorAngle_,hayAvailableMask()))break;
+        const Calf& other=calves_[(selectedCalf_+1)%calves_.size()];
+        if(glm::length(glm::vec2(candidate.x-other.position.x,candidate.z-other.position.z))<.8f)break;
+        calf.position=candidate;calf.manualWalking=glm::length2(calf.position-start)>.000001f;
+    }
+    if(calf.manualWalking)calf.animationTime+=dt;
 }

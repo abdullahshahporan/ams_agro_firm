@@ -21,10 +21,15 @@ public:
         : cubes_(cubes), primitives_(primitives), textures_(textures) {}
 
     void render(const Shader& shader, float gateAngleDegrees, float stallGateAngleDegrees,
-                float calfShedDoorAngleDegrees, float fanAngleDegrees,
+                float calfShedDoorAngleDegrees, float poultryDoorAngleDegrees,
+                float fanAngleDegrees,
                 const LightingSystem& lighting,
-                bool workerDoorOpen, bool pickupHayAvailable,
-                int deliveredHayLoads) const;
+                float workerDoorAngle, unsigned int hayAvailableMask,
+                int deliveredHayLoads, bool waterValveOpen,
+                float waterValveAngle, bool workerHoldingHose,
+                bool hosePlacedAtTrough, const glm::vec3& hoseEndPosition,
+                float waterTroughFill, bool feedBagAvailable,
+                bool hoeAvailable) const;
     static const array<glm::vec3, 4>& futureCowPositions();
 
 private:
@@ -53,25 +58,29 @@ private:
     void drawCalfShedSideDoor(const Shader& shader, float angleDegrees) const;
     void drawTrough(const Shader& shader, const glm::vec3& position, float length) const;
     void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees,
-                            int deliveredHayLoads) const;
+                            int deliveredHayLoads, float waterTroughFill) const;
     void drawStallGate(const Shader& shader, const glm::vec3& hinge,
                        float angleDegrees) const;
 
-    void drawHayArea(const Shader& shader, bool pickupHayAvailable) const;
+    void drawHayArea(const Shader& shader, unsigned int hayAvailableMask) const;
     void drawHayBale(const Shader& shader, const glm::vec3& position, float rotation) const;
     void drawTrees(const Shader& shader) const;
     void drawTree(const Shader& shader, const glm::vec3& position, float scale) const;
     void drawWaterFacility(const Shader& shader) const;
-    void drawPoultryShed(const Shader& shader) const;
-    void drawWorkerHouse(const Shader& shader, bool doorOpen) const;
+    void drawWaterHose(const Shader& shader, bool valveOpen, float valveAngle,
+                       bool workerHoldingHose, bool hosePlacedAtTrough,
+                       const glm::vec3& hoseEndPosition, float waterTroughFill) const;
+    void drawPoultryShed(const Shader& shader, float doorAngleDegrees) const;
+    void drawWorkerHouse(const Shader& shader, float doorAngle) const;
 
     void drawShedFans(const Shader& shader, float fanAngleDegrees) const;
     void drawFan(const Shader& shader, const glm::vec3& position, float parentAngle) const;
-    void drawInspectionDrone(const Shader& shader, const LightingSystem& lighting) const;
     void drawLightFixtures(const Shader& shader,
                            const LightingSystem& lighting) const;
 
     void drawFarmProps(const Shader& shader) const;
+    void drawFarmTools(const Shader& shader, bool feedBagAvailable,
+                       bool hoeAvailable) const;
     void drawCrate(const Shader& shader, const glm::vec3& position, float rotation) const;
     void drawFeedSack(const Shader& shader, const glm::vec3& position, float rotation) const;
 

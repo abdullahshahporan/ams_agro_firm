@@ -27,6 +27,7 @@ struct Bird
     bool juvenile;
     glm::vec3 color;
     Calf::RouteState routeState;
+    int navigationStage{0};
 };
 
 #endif

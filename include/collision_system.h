@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cmath>
+#include "shared/farm_interaction.h"
 
 using namespace std;
 
@@ -14,7 +15,8 @@ public:
     static bool canOccupy(const glm::vec3& position, float gateAngleDegrees,
                           float stallGateAngleDegrees,
                           float calfShedDoorAngleDegrees,
-                          bool workerDoorOpen = false)
+                          float workerDoorAngle = 0.0f,
+                          unsigned int hayAvailableMask = 0u)
     {
         constexpr float radius = 0.38f;
         if (position.y < 0.45f || position.y > 60.0f ||
@@ -24,11 +26,11 @@ public:
         struct Box { float minX, maxX, minZ, maxZ, height; };
         const array<Box, 29> obstacles = {{
             {-14.3f,-13.45f,-11.8f,-5.0f,4.2f},
-            { -6.55f,-5.7f,-11.8f,-10.22f,4.2f}, // ox-side wall behind calf door
-            { -6.55f,-5.7f, -8.98f, -5.0f,4.2f}, // ox-side wall ahead of door
+            { -6.34f,-6.10f,-11.18f,-10.26f,4.2f}, // actual side-wall footprint
+            { -6.34f,-6.10f, -9.00f, -8.16f,4.2f},
             {-14.4f,-13.6f, -8.4f,-7.1f,4.2f},
             {-10.4f, -9.6f, -8.4f,-7.1f,4.2f},
-            { -6.4f, -5.6f, -8.4f,-7.1f,4.2f},
+            { -6.08f,-5.92f,-7.73f,-5.45f,1.7f}, // actual ox-side stall post/rail
             {-13.6f,-10.4f, -6.05f,-4.85f,1.2f}, // indoor troughs
             { -9.6f, -6.4f, -6.05f,-4.85f,1.2f},
             {  7.5f,  7.95f,-14.2f,-7.8f,5.2f}, // barn walls
@@ -55,7 +57,7 @@ public:
         }};
         for (size_t index = 0; index < obstacles.size(); ++index)
         {
-            if (workerDoorOpen && index == 25) // opened worker-house door
+            if (index == 25) // Actual rotated door leaf is tested below.
                 continue;
             const Box& box = obstacles[index];
             // Position is the viewer's eye, so include an approximate body
@@ -64,6 +66,20 @@ public:
                 position.x + radius > box.minX && position.x - radius < box.maxX &&
                 position.z + radius > box.minZ && position.z - radius < box.maxZ)
                 return false;
+        }
+
+        // Dynamic pickup bundles block actors while they remain on the lawn.
+        if (position.y <= 2.8f)
+        {
+            for (int index=0; index<FarmInteraction::HayCount; ++index)
+            {
+                if ((hayAvailableMask & (1u<<index)) == 0u)
+                    continue;
+                const glm::vec3 hay=FarmInteraction::hayPosition(index);
+                if (position.x+radius>hay.x-0.47f && position.x-radius<hay.x+0.47f &&
+                    position.z+radius>hay.z-0.36f && position.z-radius<hay.z+0.36f)
+                    return false;
+            }
         }
 
         const array<glm::vec2, 8> trees = {{
@@ -119,6 +135,14 @@ public:
                                        0.0f, 1.0f);
             return glm::length(point - (start + segment * t));
         };
+
+        if(position.y < 4.85f)
+        {
+            const float angle=glm::radians(workerDoorAngle);
+            const glm::vec2 hinge(7.2f,10.48f);
+            const glm::vec2 end=hinge+glm::vec2(1.6f*cos(angle),-1.6f*sin(angle));
+            if(distanceToSegment(glm::vec2(position.x,position.z),hinge,end)<radius+.06f)return false;
+        }
 
         if (position.y < 5.1f)
         {

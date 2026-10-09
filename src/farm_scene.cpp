@@ -5,10 +5,14 @@
 
 void FarmScene::render(const Shader& shader, float gateAngleDegrees,
                        float stallGateAngleDegrees, float calfShedDoorAngleDegrees,
-                       float fanAngleDegrees,
+                       float poultryDoorAngleDegrees, float fanAngleDegrees,
                        const LightingSystem& lighting,
-                       bool workerDoorOpen, bool pickupHayAvailable,
-                       int deliveredHayLoads) const
+                       float workerDoorAngle, unsigned int hayAvailableMask,
+                       int deliveredHayLoads, bool waterValveOpen,
+                       float waterValveAngle, bool workerHoldingHose,
+                       bool hosePlacedAtTrough, const glm::vec3& hoseEndPosition,
+                       float waterTroughFill, bool feedBagAvailable,
+                       bool hoeAvailable) const
 {
     applyMaterial(shader, Materials::grass());
     drawGround(shader);
@@ -23,18 +27,22 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees,
     applyMaterial(shader, Materials::brick());
     drawCowShed(shader, calfShedDoorAngleDegrees);
     drawBarn(shader);
-    drawIndoorCowStalls(shader, stallGateAngleDegrees, deliveredHayLoads);
+    drawIndoorCowStalls(shader, stallGateAngleDegrees, deliveredHayLoads,
+                       waterTroughFill);
     applyMaterial(shader, Materials::hay());
-    drawHayArea(shader, pickupHayAvailable);
+    drawHayArea(shader, hayAvailableMask);
     applyMaterial(shader, Materials::metal());
     drawWaterFacility(shader);
+    drawWaterHose(shader,waterValveOpen,waterValveAngle,workerHoldingHose,
+                  hosePlacedAtTrough,hoseEndPosition,waterTroughFill);
     applyMaterial(shader, Materials::wood());
     drawTrees(shader);
-    drawPoultryShed(shader);
-    drawWorkerHouse(shader, workerDoorOpen);
+    drawPoultryShed(shader, poultryDoorAngleDegrees);
+    drawWorkerHouse(shader, workerDoorAngle);
     applyMaterial(shader, Materials::metal());
     drawShedFans(shader, fanAngleDegrees);
     drawLightFixtures(shader, lighting);
     applyMaterial(shader, Materials::wood());
     drawFarmProps(shader);
+    drawFarmTools(shader,feedBagAvailable,hoeAvailable);
 }

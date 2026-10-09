@@ -8,6 +8,7 @@
 #include "animals/calf.h"
 #include "animals/poultry.h"
 #include "animals/farmer.h"
+#include "shared/farm_interaction.h"
 
 using namespace std;
 
@@ -19,14 +20,49 @@ public:
     void update(float deltaTime);
     void setNightMode(bool nightMode);
     void toggleAnimalShelter();
+    void sendCalvesHome();
+    void sendPoultryHome();
+    void preparePoultrySheltered();
+    void sendPoultryOut();
     void toggleCalfShed();
     void sendCalvesToFeed();
     void commandWorker();
     void sendWorkerHome();
     void toggleManualWorker();
     bool interactWithWorker();
+    bool toggleWaterValve();
+    bool scatterPoultryFeed();
+    bool pickupFeedBag();
+    bool pickupHoe();
+    bool beginHoeWork();
+    bool returnHoe();
+    void stopWaterFlow() { waterValveOpen_=false; }
     void turnManualWorker(float angleDegrees);
     void moveManualWorker(const glm::vec3& position, float deltaTime);
+    void toggleManualCalf();
+    void selectNextCalf();
+    void driveManualCalf(float forward, float turn, float deltaTime,
+                         float gate, float stall, float calfDoor);
+    bool manualCalfControl() const { return manualCalfControl_; }
+    size_t selectedCalfIndex() const { return selectedCalf_; }
+    bool restockHay();
+    unsigned int hayAvailableMask() const;
+    int hayRemaining() const;
+    bool waterValveOpen() const { return waterValveOpen_; }
+    float waterValveAngle() const { return waterValveAngle_; }
+    bool workerHoldingHose() const { return workers_[0].holdingHose; }
+    bool hosePlacedAtTrough() const { return hosePlacedAtTrough_; }
+    const glm::vec3& hoseEndPosition() const { return hoseEndPosition_; }
+    float waterTroughFill() const { return waterTroughFill_; }
+    const char* waterStatus() const;
+    float poultryFeedLevel() const { return poultryFeedLevel_; }
+    bool feedBagAvailable() const { return feedBagAvailable_; }
+    bool hoeAvailable() const { return hoeAvailable_; }
+    bool workerHoldingFeedBag() const { return workers_[0].holdingFeedBag; }
+    bool workerHoldingHoe() const { return workers_[0].holdingHoe; }
+    bool workerDigging() const { return workers_[0].digging; }
+    float workerDoorAngle() const { return workerDoorAngle_; }
+    float poultryDoorAngle() const { return poultryDoorAngle_; }
     void stopManualWorker() { workers_[0].manualWalking = false; }
 
     void toggleAdultCows() { adultCowsOn_ = !adultCowsOn_; }
@@ -39,7 +75,7 @@ public:
     bool headMotionOn() const { return headMotionOn_; }
     bool workersOn() const { return workers_[0].state != WorkerState::HomeIdle; }
     bool manualWorkerControl() const { return manualWorkerControl_; }
-    bool workerDoorOpen() const { return workers_[0].state != WorkerState::HomeIdle; }
+    bool workerDoorOpen() const { return abs(workerDoorAngle_) >= 85.0f; }
     int deliveredHayLoads() const { return workers_[0].deliveredLoads; }
     bool fansOn() const { return fansOn_; }
     float fanAngle() const { return fanAngle_; }
@@ -70,7 +106,10 @@ private:
     static void updateCalfPath(Calf& calf, float deltaTime);
     static void updateCalfNavigation(Calf& calf, float deltaTime,
                                      CalfDestination destination);
-    static void updateWorker(Worker& worker, float deltaTime);
+    void updateWorker(Worker& worker, float deltaTime);
+    bool beginHayPickup(Worker& worker, int index);
+    void returnUndeliveredHay(Worker& worker);
+    void resumeCalf(Calf& calf);
     static void updateBirdPath(Bird& bird, float deltaTime);
     static void updateBirdNavigation(Bird& bird, float deltaTime, bool shelterRequested);
     static bool moveToward(glm::vec3& position, float& yaw, const glm::vec3& target,
@@ -91,6 +130,19 @@ private:
     bool manualWorkerControl_{false};
     CalfDestination calfDestination_{CalfDestination::Home};
     float fanAngle_{0.0f};
+    float workerDoorAngle_{0.0f};
+    float poultryDoorAngle_{0.0f};
+    array<bool,FarmInteraction::HayCount> hayAvailable_{{true,true,true}};
+    bool manualCalfControl_{false};
+    size_t selectedCalf_{0};
+    bool waterValveOpen_{false};
+    float waterValveAngle_{0.0f};
+    bool hosePlacedAtTrough_{false};
+    glm::vec3 hoseEndPosition_{FarmInteraction::HoseRest};
+    float waterTroughFill_{0.0f};
+    float poultryFeedLevel_{0.0f};
+    bool feedBagAvailable_{true};
+    bool hoeAvailable_{true};
 };
 
 #endif

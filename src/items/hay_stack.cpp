@@ -7,11 +7,12 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include "shared/farm_interaction.h"
 
 using namespace std;
 using namespace FarmStyle;
 
-void FarmScene::drawHayArea(const Shader& shader, bool pickupHayAvailable) const
+void FarmScene::drawHayArea(const Shader& shader, unsigned int hayAvailableMask) const
 {
     drawHayBale(shader, glm::vec3(-10.2f, 0.52f, 2.0f), -6.0f);
     drawHayBale(shader, glm::vec3(-8.0f, 0.52f, 2.2f), 4.0f);
@@ -20,10 +21,14 @@ void FarmScene::drawHayArea(const Shader& shader, bool pickupHayAvailable) const
     drawHayBale(shader, glm::vec3(-6.9f, 1.48f, 2.1f), -5.0f);
     drawHayBale(shader, glm::vec3(-8.0f, 0.52f, 4.0f), 8.0f);
     drawHayBale(shader, glm::vec3(-6.0f, 0.52f, 4.1f), -7.0f);
-    if (pickupHayAvailable)
-        cubes_.drawTextured(shader, glm::vec3(-4.1f, 0.19f, 3.4f),
+    for(int i=0;i<FarmInteraction::HayCount;++i) if(hayAvailableMask & (1u<<i))
+    {
+        const glm::vec3 position=FarmInteraction::hayPosition(i);
+        cubes_.drawColored(shader, position,
                             glm::vec3(0.94f, 0.37f, 0.72f),
-                            textures_.hay, HayTint);
+                            glm::vec3(0.79f,0.64f,0.28f));
+        for(float x:{-.24f,.24f})cubes_.drawColored(shader,position+glm::vec3(x,0,0),glm::vec3(.045f,.39f,.75f),glm::vec3(.31f,.20f,.09f));
+    }
 }
 
 void FarmScene::drawHayBale(const Shader& shader, const glm::vec3& position, float rotation) const

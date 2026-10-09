@@ -46,11 +46,11 @@
     <ClCompile Include="src\items\crate.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\entrance_gate.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\farm_props.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\farm_tools.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\farm_sign.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\feed_sack.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\ground.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\hay_stack.cpp"><Filter>Source Files\Items</Filter></ClCompile>
-    <ClCompile Include="src\items\inspection_drone.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\light_fixtures.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\owner_billboard.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\poultry_shed.cpp"><Filter>Source Files\Items</Filter></ClCompile>
@@ -58,12 +58,14 @@
     <ClCompile Include="src\items\surroundings.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\trees.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\water_tank.cpp"><Filter>Source Files\Items</Filter></ClCompile>
+    <ClCompile Include="src\items\water_hose.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\items\worker_house.cpp"><Filter>Source Files\Items</Filter></ClCompile>
     <ClCompile Include="src\animation_system.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\cube_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\curved_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\entity_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\farm_scene.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\hud_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\lighting_system.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\main.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\simulation.cpp"><Filter>Source Files</Filter></ClCompile>
@@ -82,6 +84,7 @@
     <ClInclude Include="include\shared\curve_vertex.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\shared\entity_transform.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\shared\farm_style.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\shared\farm_interaction.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\animation_system.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\camera.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\collision_system.h"><Filter>Header Files</Filter></ClInclude>
@@ -89,6 +92,7 @@
     <ClInclude Include="include\curved_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\entity_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\farm_scene.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\hud_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\lighting_system.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\material.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\primitive_renderer.h"><Filter>Header Files</Filter></ClInclude>

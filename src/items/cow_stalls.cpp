@@ -34,7 +34,8 @@ void FarmScene::drawTrough(const Shader& shader, const glm::vec3& position, floa
 
 void FarmScene::drawIndoorCowStalls(const Shader& shader,
                                     float stallGateAngleDegrees,
-                                    int deliveredHayLoads) const
+                                    int deliveredHayLoads,
+                                    float waterTroughFill) const
 {
     // Two stalls align with the tied cows. The front remains accessible for
     // feeding, while O opens the rear gates for inspection behind the cattle.
@@ -59,7 +60,7 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader,
     // Fresh cut grass/fodder is deliberately green and visibly raised above
     // the trough base so it is obvious when entering the shed.
     applyMaterial(shader, Materials::grass());
-    for (const float xCenter : {-12.0f, -8.0f})
+    for (const float xCenter : {-12.0f})
     {
         for (int strip = -2; strip <= 2; ++strip)
         {
@@ -70,6 +71,17 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader,
                 glm::vec3(0.30f, 0.72f, 0.18f), glm::vec2(1.0f),
                 static_cast<float>(strip) * 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         }
+    }
+
+    // The second vessel is the dedicated drinking-water trough.  Its visible
+    // blue surface rises gradually while the hose is placed above it.
+    if(waterTroughFill>0.001f)
+    {
+        const float fill=glm::clamp(waterTroughFill,0.0f,1.0f);
+        applyMaterial(shader,Materials::metal());
+        cubes_.drawColored(shader,glm::vec3(-8.0f,0.32f+0.44f*fill,-5.45f),
+                           glm::vec3(2.30f,0.05f,0.70f),
+                           glm::vec3(0.08f,0.45f,0.82f));
     }
 
     if (deliveredHayLoads > 0)

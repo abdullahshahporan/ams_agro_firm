@@ -71,5 +71,4 @@ void FarmScene::drawLightFixtures(const Shader& shader,
                        glm::vec3(0.42f, 0.26f, 0.08f), glm::vec3(1.0f, 0.92f, 0.64f));
     applyMaterial(shader, Materials::metal());
 
-    drawInspectionDrone(shader, lighting);
 }

@@ -11,6 +11,7 @@
 #include "curved_renderer.h"
 #include "entity_renderer.h"
 #include "farm_scene.h"
+#include "hud_renderer.h"
 #include "lighting_system.h"
 #include "primitive_renderer.h"
 #include "ray_trace_renderer.h"
@@ -35,7 +36,7 @@ constexpr float GateSpeedDegreesPerSecond = 60.0f;
 Camera camera(glm::vec3(0.0f, 3.0f, 25.0f));
 
 float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+double lastFrame = 0.0;
 float lastMouseX = InitialWidth * 0.5f;
 float lastMouseY = InitialHeight * 0.5f;
 bool firstMouseEvent = true;
@@ -49,7 +50,8 @@ bool texturesEnabled = true;
 bool birdEyeMode = false;
 bool fourViewMode = false;
 bool mouseCaptured = true;
-bool gouraudShading = false;
+// 0 = flat (per triangle), 1 = Gouraud (per vertex), 2 = Phong (per pixel).
+int rasterShadingMode = 2;
 bool rayTracingMode = false;
 AnimationSystem animationSystem;
 LightingSystem lightingSystem;
@@ -64,6 +66,13 @@ const char* onOff(bool enabled)
     return enabled ? "ON" : "OFF";
 }
 
+const char* shadingName()
+{
+    if (rasterShadingMode == 0) return "FLAT";
+    if (rasterShadingMode == 1) return "GOURAUD";
+    return "PHONG";
+}
+
 void updateWindowTitle(GLFWwindow* window)
 {
     if (window == nullptr)
@@ -72,7 +81,7 @@ void updateWindowTitle(GLFWwindow* window)
     string title = "AMS Agro Farm | ";
     title += lightingSystem.nightMode() ? "NIGHT" : "DAY";
     title += fourViewMode ? " | FOUR VIEW" : (birdEyeMode ? " | BIRD'S-EYE" : " | FREE VIEW");
-    title += rayTracingMode ? " | RAY TRACING" : (gouraudShading ? " | GOURAUD" : " | PHONG");
+    title += rayTracingMode ? " | RAY TRACING" : string(" | ") + shadingName();
     if (animationSystem.manualWorkerControl())
         title += " | WORKER CONTROL";
     title += " | Shed ";
@@ -85,8 +94,12 @@ void updateWindowTitle(GLFWwindow* window)
     title += onOff(lightingSystem.billboardLightEnabled());
     title += " | Spot ";
     title += onOff(lightingSystem.spotlightEnabled());
-    title += " | Moving lamp ";
-    title += onOff(lightingSystem.movingLightEnabled());
+    if(animationSystem.manualCalfControl())title+=" | CALF "+to_string(animationSystem.selectedCalfIndex()+1)+" CONTROL";
+    title += " | HAY STOCK " + to_string(animationSystem.hayRemaining());
+    title += animationSystem.waterValveOpen()?" | WATER ON":" | WATER OFF";
+    if(animationSystem.workerHoldingHose())title+=" | HOSE IN HAND";
+    title += " | TROUGH " + to_string(static_cast<int>(animationSystem.waterTroughFill()*100.0f)) + "%";
+    if(animationSystem.poultryFeedLevel()>0.0f)title+=" | POULTRY FED";
     title += lightingSystem.spotlightSweep() ? " | SPOT SWEEP" : "";
     if (animationSystem.workers()[0].state == WorkerState::Feeding)
         title += " | PLACING HAY";
@@ -178,22 +191,27 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
             updateWindowTitle(window);
         }
     }
-    if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
-    {
-        lightingSystem.toggleMovingLight();
-        cout << "Moving inspection light: " << onOff(lightingSystem.movingLightEnabled()) << '\n';
+    if (key == GLFW_KEY_F7 && action == GLFW_PRESS) {
+        animationSystem.toggleManualCalf();
+        if(animationSystem.manualCalfControl()){birdEyeMode=false;fourViewMode=false;rayTracingMode=false;firstMouseEvent=true;}
+        cout<<(animationSystem.manualCalfControl()?"Calf control: W/S move, A/D turn, F8 selects the next calf.\n":"Calf control off; direct control is available during daytime.\n");
         updateWindowTitle(window);
     }
+    if(key==GLFW_KEY_F8&&action==GLFW_PRESS){animationSystem.selectNextCalf();updateWindowTitle(window);}
+    if(key==GLFW_KEY_F9&&action==GLFW_PRESS){cout<<(animationSystem.restockHay()?"Hay restocked.\n":"Finish or cancel the worker task before restocking.\n");updateWindowTitle(window);}
     if (key == GLFW_KEY_F4 && action == GLFW_PRESS)
     {
         lightingSystem.toggleSpotlightSweep();
         cout << "Spotlight sweep: " << onOff(lightingSystem.spotlightSweep()) << '\n';
         updateWindowTitle(window);
     }
-    if (key == GLFW_KEY_F5 && action == GLFW_PRESS)
+    if(key==GLFW_KEY_F3&&action==GLFW_PRESS)
     {
-        lightingSystem.toggleMovingLightMotion();
-        cout << "Inspection light movement: " << onOff(lightingSystem.movingLightAnimated()) << '\n';
+        if(animationSystem.toggleWaterValve())
+            cout<<"Water system: "<<animationSystem.waterStatus()<<".\n";
+        else
+            cout<<"Water valve: enter worker control and stand beside the red hand-wheel.\n";
+        updateWindowTitle(window);
     }
     if (key == GLFW_KEY_E && action == GLFW_PRESS &&
         animationSystem.manualWorkerControl())
@@ -201,7 +219,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
         if (animationSystem.interactWithWorker())
             cout << "Worker: " << animationSystem.workerStatus() << '\n';
         else
-            cout << "Worker: move beside the hay stack or milking-cow trough, then press E.\n";
+            cout << "Worker: move beside hay, the hose, a cattle trough, or the poultry feeding area, then press E.\n";
         updateWindowTitle(window);
     }
     if (key == GLFW_KEY_K && action == GLFW_PRESS)
@@ -251,15 +269,15 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
 
     if (key == GLFW_KEY_Y && action == GLFW_PRESS)
     {
-        gouraudShading = !gouraudShading;
-        cout << "Raster shading: " << (gouraudShading ? "GOURAUD" : "PHONG") << '\n';
+        rasterShadingMode = (rasterShadingMode + 1) % 3;
+        cout << "Raster shading: " << shadingName() << '\n';
         updateWindowTitle(window);
     }
     if (key == GLFW_KEY_X && action == GLFW_PRESS)
     {
-        if (animationSystem.manualWorkerControl())
+        if (animationSystem.manualWorkerControl() || animationSystem.manualCalfControl())
         {
-            cout << "Press F2 to leave worker control before using ray tracing.\n";
+            cout << "Leave farmer/calf control before using ray tracing.\n";
             return;
         }
         rayTracingMode = !rayTracingMode;
@@ -349,9 +367,9 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     }
     if (key == GLFW_KEY_B && action == GLFW_PRESS)
     {
-        if (animationSystem.manualWorkerControl())
+        if (animationSystem.manualWorkerControl() || animationSystem.manualCalfControl())
         {
-            cout << "Press F2 to leave worker control before changing views.\n";
+            cout << "Leave farmer/calf control before changing views.\n";
             return;
         }
         birdEyeMode = !birdEyeMode;
@@ -366,9 +384,9 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
     }
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
     {
-        if (animationSystem.manualWorkerControl())
+        if (animationSystem.manualWorkerControl() || animationSystem.manualCalfControl())
         {
-            cout << "Press F2 to leave worker control before changing views.\n";
+            cout << "Leave farmer/calf control before changing views.\n";
             return;
         }
         fourViewMode = !fourViewMode;
@@ -401,7 +419,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int)
 void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 {
     if (!mouseCaptured || birdEyeMode || fourViewMode ||
-        animationSystem.manualWorkerControl())
+        (animationSystem.manualWorkerControl() || animationSystem.manualCalfControl()))
     {
         firstMouseEvent = true;
         return;
@@ -424,7 +442,7 @@ void mouseCallback(GLFWwindow*, double xPosition, double yPosition)
 void scrollCallback(GLFWwindow*, double, double yOffset)
 {
     if (mouseCaptured && !birdEyeMode && !fourViewMode &&
-        !animationSystem.manualWorkerControl())
+        !animationSystem.manualWorkerControl() && !animationSystem.manualCalfControl())
         camera.processMouseScroll(static_cast<float>(yOffset));
 }
 
@@ -446,7 +464,8 @@ void tryCameraMovement(CameraMovement movement)
         if (!CollisionSystem::canOccupy(candidate, gateAngleDegrees,
                                         stallGateAngleDegrees,
                                         calfShedDoorAngleDegrees,
-                                        animationSystem.workerDoorOpen()))
+                                        animationSystem.workerDoorAngle(),
+                                        animationSystem.hayAvailableMask()))
             break;
         camera.Position = candidate;
     }
@@ -464,6 +483,14 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) aimPitch -= 45.0f * deltaTime;
     if (aimYaw != 0.0f || aimPitch != 0.0f)
         lightingSystem.aimSpotlight(aimYaw, aimPitch);
+
+    if(animationSystem.manualCalfControl())
+    {
+        const float forward=(glfwGetKey(window,GLFW_KEY_W)==GLFW_PRESS?1.0f:0.0f)-(glfwGetKey(window,GLFW_KEY_S)==GLFW_PRESS?1.0f:0.0f);
+        const float turn=(glfwGetKey(window,GLFW_KEY_A)==GLFW_PRESS?1.0f:0.0f)-(glfwGetKey(window,GLFW_KEY_D)==GLFW_PRESS?1.0f:0.0f);
+        animationSystem.driveManualCalf(forward,turn,deltaTime,gateAngleDegrees,stallGateAngleDegrees,calfShedDoorAngleDegrees);
+        return;
+    }
 
     if (animationSystem.manualWorkerControl())
     {
@@ -485,11 +512,16 @@ void processInput(GLFWwindow* window)
             const Worker& worker = animationSystem.workers()[0];
             const float angle = glm::radians(worker.yaw);
             const glm::vec3 direction(cos(angle), 0.0f, -sin(angle));
-            const glm::vec3 candidate = worker.position + direction * step;
-            if (CollisionSystem::canOccupy(candidate + glm::vec3(0.0f, 1.8f, 0.0f),
-                                           gateAngleDegrees, stallGateAngleDegrees,
-                                           calfShedDoorAngleDegrees, true))
-                animationSystem.moveManualWorker(candidate, deltaTime);
+            const glm::vec3 origin=worker.position;
+            const int steps=max(1,static_cast<int>(ceil(abs(step)/.04f)));
+            for(int i=1;i<=steps;++i)
+            {
+                const glm::vec3 candidate=origin+direction*(step*i/steps);
+                if(!CollisionSystem::canOccupy(candidate+glm::vec3(0,1.8f,0),gateAngleDegrees,stallGateAngleDegrees,
+                    calfShedDoorAngleDegrees,animationSystem.workerDoorAngle(),
+                    animationSystem.hayAvailableMask()))break;
+                animationSystem.moveManualWorker(candidate,deltaTime/steps);
+            }
         }
         return;
     }
@@ -529,7 +561,8 @@ void updateAnimations(float frameDeltaTime)
     if (CollisionSystem::canOccupy(camera.Position, gateCandidate,
                                    stallGateAngleDegrees,
                                    calfShedDoorAngleDegrees,
-                                   animationSystem.workerDoorOpen()))
+                                   animationSystem.workerDoorAngle(),
+                                   animationSystem.hayAvailableMask()))
         gateAngleDegrees = gateCandidate;
 
     // Rear stall leaves swing forward along the stall dividers. A positive
@@ -540,7 +573,8 @@ void updateAnimations(float frameDeltaTime)
     if (CollisionSystem::canOccupy(camera.Position, gateAngleDegrees,
                                    stallCandidate,
                                    calfShedDoorAngleDegrees,
-                                   animationSystem.workerDoorOpen()))
+                                   animationSystem.workerDoorAngle(),
+                                   animationSystem.hayAvailableMask()))
         stallGateAngleDegrees = stallCandidate;
 
     animationSystem.update(frameDeltaTime);
@@ -554,7 +588,8 @@ void updateAnimations(float frameDeltaTime)
     if (CollisionSystem::canOccupy(camera.Position, gateAngleDegrees,
                                    stallGateAngleDegrees,
                                    calfDoorCandidate,
-                                   animationSystem.workerDoorOpen()))
+                                   animationSystem.workerDoorAngle(),
+                                   animationSystem.hayAvailableMask()))
         calfShedDoorAngleDegrees = calfDoorCandidate;
 }
 
@@ -565,12 +600,20 @@ void renderScene(const Shader& shader, const FarmScene& farmScene,
 {
     farmScene.render(shader, gateAngleDegrees, stallGateAngleDegrees,
                      calfShedDoorAngleDegrees,
+                     animationSystem.poultryDoorAngle(),
                      animationSystem.fanAngle(),
                      lightingSystem,
-                     animationSystem.workerDoorOpen(),
-                     !animationSystem.workers()[0].carryingHay &&
-                         animationSystem.workers()[0].state != WorkerState::PickingUpHay,
-                     animationSystem.deliveredHayLoads());
+                     animationSystem.workerDoorAngle(),
+                     animationSystem.hayAvailableMask(),
+                     animationSystem.deliveredHayLoads(),
+                     animationSystem.waterValveOpen(),
+                     animationSystem.waterValveAngle(),
+                     animationSystem.workerHoldingHose(),
+                     animationSystem.hosePlacedAtTrough(),
+                     animationSystem.hoseEndPosition(),
+                     animationSystem.waterTroughFill(),
+                     animationSystem.feedBagAvailable(),
+                     animationSystem.hoeAvailable());
     entityRenderer.render(shader, animationSystem);
     curvedRenderer.render(shader, textures);
 }
@@ -595,6 +638,7 @@ void renderOneView(
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
     lightingSystem.setupShader(shader, viewPosition);
+    shader.setBool("flatShading", rasterShadingMode == 0);
     renderScene(shader, farmScene, entityRenderer, curvedRenderer, textures);
 }
 
@@ -611,6 +655,40 @@ void drawFourViewSeparators(int width, int height, int verticalSplit,
               width, thickness);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_SCISSOR_TEST);
+}
+
+void drawInteractiveHud(HudRenderer& hud,int width,int height)
+{
+    const float scale=min(width/1200.0f,height/800.0f);
+    const float margin=18.0f*scale;
+    const float panelWidth=326.0f*scale;
+    const float x=width-margin-panelWidth;
+    const glm::vec4 panel(.012f,.035f,.040f,.84f);
+    const glm::vec4 white(.93f,.97f,.95f,1.0f);
+    const glm::vec4 gold(.96f,.73f,.24f,1.0f);
+    const glm::vec4 muted(.57f,.75f,.70f,1.0f);
+    hud.begin();
+    hud.rectangle(x,margin,panelWidth,146.0f*scale,panel);
+    hud.rectangle(x,margin,4.0f*scale,146.0f*scale,gold);
+    hud.text("AMS AGRO FARM / LIVE CONTROL",x+14*scale,margin+11*scale,1.18f*scale,gold);
+    hud.text(string("TIME     ")+(lightingSystem.nightMode()?"NIGHT":"DAY"),
+             x+14*scale,margin+35*scale,1.05f*scale,white);
+    const string view=fourViewMode?"FOUR VIEW":(birdEyeMode?"BIRD EYE":
+        (animationSystem.manualWorkerControl()?"FARMER FOLLOW":
+        (animationSystem.manualCalfControl()?"CALF FOLLOW":"FREE CAMERA")));
+    hud.text("CAMERA   "+view,x+14*scale,margin+54*scale,1.05f*scale,white);
+    hud.text(string("RENDER   ")+(rayTracingMode?"RAY TRACING":shadingName()),
+             x+14*scale,margin+73*scale,1.05f*scale,gold);
+    hud.text(string("LIGHTS   SUN ")+(lightingSystem.pointLightsEnabled()?"POINT ":"OFF ")+
+             (lightingSystem.spotlightEnabled()?"SPOT":"NO SPOT"),
+             x+14*scale,margin+92*scale,.92f*scale,muted);
+    hud.text("HAY "+to_string(animationSystem.hayRemaining())+"  WATER "+
+             to_string(static_cast<int>(animationSystem.waterTroughFill()*100.0f))+"%  FED "+
+             to_string(animationSystem.deliveredHayLoads()),
+             x+14*scale,margin+111*scale,1.0f*scale,white);
+    hud.text("F1 HELP / TAB MOUSE / Y SHADING / X RAY",x+14*scale,
+             margin+130*scale,.83f*scale,muted);
+    hud.flush(width,height);
 }
 
 void printControls()
@@ -636,16 +714,19 @@ void printControls()
         << "M       : Send Worker for Hay and Feed the Cow\n"
         << "F2      : Control Worker / Return to Camera\n"
         << "Worker  : W/S Walk, A/D Turn, E Pick Up/Place Hay\n"
-        << "F3      : Moving Inspection Light ON/OFF\n"
+        << "F7      : Direct Calf Control ON/OFF (W/S move, A/D turn)\n"
+        << "F8      : Select Next Calf\n"
+        << "F9      : Restock Hay (only while worker is home)\n"
+        << "F3      : Turn Water Valve (worker must stand beside red wheel)\n"
+        << "Worker E: Handle hay/hose or scatter grain beside moving poultry\n"
         << "F4      : Entrance Spotlight Sweep ON/OFF\n"
-        << "F5      : Pause/Resume Moving Inspection Light\n"
         << "Arrows  : Aim Entrance Spotlight (Manual)\n"
         << "K       : Send Worker Home\n"
         << "L       : Recall/Release Mobile Animals\n"
         << "J       : Calves Leave/Return Ox-Side Shed\n"
         << "N       : Send Calves Through Ox-Side Door to Feed\n"
         << "F       : Pause/Resume Shed Fans\n"
-        << "Y       : Switch Phong/Gouraud Shading\n"
+        << "Y       : Cycle Flat/Gouraud/Phong Shading\n"
         << "X       : Toggle Real-Time Ray-Traced Farm View\n"
         << "1/KP1   : Directional Light ON/OFF\n"
         << "2/KP2   : All Point-Light Groups ON/OFF\n"
@@ -685,6 +766,7 @@ int main(int argc, char** argv)
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_SAMPLES,4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     if (smokeTest)
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -724,6 +806,7 @@ int main(int argc, char** argv)
     glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
     glViewport(0, 0, framebufferWidth, framebufferHeight);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
 
     int exitCode = 0;
     try
@@ -737,6 +820,7 @@ int main(int argc, char** argv)
         PrimitiveRenderer primitiveRenderer;
         CurvedRenderer curvedRenderer;
         RayTraceRenderer rayTraceRenderer;
+        HudRenderer hudRenderer;
         FarmScene farmScene(cubeRenderer, primitiveRenderer, textureManager.farm());
         EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
 
@@ -748,34 +832,35 @@ int main(int argc, char** argv)
         int smokeFrame = 0;
         if (smokeTest)
         {
-            lightingSystem.toggleMovingLight();
             lightingSystem.toggleSpotlightSweep();
             animationSystem.commandWorker();
             for (int step = 0; step < 1200; ++step)
                 animationSystem.update(1.0f / 60.0f);
         }
 
-        lastFrame = static_cast<float>(glfwGetTime());
+        lastFrame = glfwGetTime();
+        double animationAccumulator=0;
         while (!glfwWindowShouldClose(window))
         {
-            const float currentFrame = static_cast<float>(glfwGetTime());
-            deltaTime = smokeTest ? 1.0f / 60.0f : min(currentFrame - lastFrame, 0.10f);
+            const double currentFrame = glfwGetTime();
+            deltaTime = smokeTest ? 1.0f / 60.0f : static_cast<float>(min(currentFrame - lastFrame, 0.10));
             lastFrame = currentFrame;
 
             if (smokeTest)
             {
-                gouraudShading = smokeFrame == 1;
-                rayTracingMode = smokeFrame == 2;
-                fourViewMode = smokeFrame == 3;
-                birdEyeMode = smokeFrame == 4;
-                if (smokeFrame == 2 || smokeFrame == 3)
+                rasterShadingMode = smokeFrame < 3 ? smokeFrame : 2;
+                rayTracingMode = smokeFrame == 3;
+                fourViewMode = smokeFrame == 4;
+                birdEyeMode = smokeFrame == 5;
+                if (smokeFrame == 3 || smokeFrame == 4)
                     lightingSystem.toggleDayNight();
-                if (smokeFrame == 5)
+                if (smokeFrame == 6)
                     animationSystem.toggleManualWorker();
             }
             else
                 processInput(window);
-            updateAnimations(deltaTime);
+            animationAccumulator+=deltaTime;
+            while(animationAccumulator>=1.0/120.0){updateAnimations(1.0f/120.0f);animationAccumulator-=1.0/120.0;}
             updateWindowTitle(window);
 
             const glm::vec3 skyColor = lightingSystem.clearColor();
@@ -784,19 +869,23 @@ int main(int argc, char** argv)
 
             if (framebufferWidth > 0 && framebufferHeight > 0)
             {
+                const bool controlling=animationSystem.manualWorkerControl()||animationSystem.manualCalfControl();
                 const glm::mat4 projection = glm::perspective(
-                    glm::radians(camera.Zoom),
+                    glm::radians(controlling?55.0f:camera.Zoom),
                     static_cast<float>(framebufferWidth) / static_cast<float>(framebufferHeight),
                     0.1f,
                     TerrainRenderer::FarPlane);
-                const glm::vec3 workerViewEye = animationSystem.workers()[0].position
-                    + glm::vec3(0.0f, 3.6f, 5.4f);
-                const glm::mat4 view = animationSystem.manualWorkerControl()
-                    ? glm::lookAt(workerViewEye,
-                                  animationSystem.workers()[0].position
-                                      + glm::vec3(0.0f, 1.3f, 0.0f),
-                                  glm::vec3(0.0f, 1.0f, 0.0f))
-                    : camera.getViewMatrix();
+                const bool following=controlling;
+                const glm::vec3 actor=animationSystem.manualCalfControl()?animationSystem.calves()[animationSystem.selectedCalfIndex()].position:animationSystem.workers()[0].position;
+                glm::vec3 desiredEye=actor+glm::vec3(3.3f,3.4f,5.4f);
+                if(animationSystem.manualWorkerControl()&&actor.x>6&&actor.z>9.5f)
+                    desiredEye=glm::mix(glm::vec3(8,3.4f,8.8f),glm::vec3(12.2f,4,8.8f),glm::smoothstep(0.0f,1.0f,11.5f-actor.z));
+                const glm::vec3 desiredTarget=actor+glm::vec3(0,animationSystem.manualCalfControl()?.8f:1.3f,0);
+                static glm::vec3 workerViewEye(0),followTarget(0);static int previousRole=0;
+                const int role=animationSystem.manualCalfControl()?2+static_cast<int>(animationSystem.selectedCalfIndex()):(animationSystem.manualWorkerControl()?1:0);
+                const float blend=role!=previousRole?1.0f:1.0f-exp(-8.0f*deltaTime);
+                workerViewEye=glm::mix(workerViewEye,desiredEye,blend);followTarget=glm::mix(followTarget,desiredTarget,blend);previousRole=role;
+                const glm::mat4 view=following?glm::lookAt(workerViewEye,followTarget,glm::vec3(0,1,0)):camera.getViewMatrix();
 
                 cubeRenderer.setTexturesEnabled(texturesEnabled);
                 curvedRenderer.setTexturesEnabled(texturesEnabled);
@@ -820,12 +909,13 @@ int main(int argc, char** argv)
                             : 0.0f);
                     rayTraceShader.setInt("deliveredHayLoads",
                                           animationSystem.deliveredHayLoads());
+                    rayTraceShader.setFloat("weatherWetness",0.0f);
                     rayTraceRenderer.render(rayTraceShader, view, projection);
                     glEnable(GL_DEPTH_TEST);
                 }
                 else if (fourViewMode && framebufferWidth >= 2 && framebufferHeight >= 2)
                 {
-                    const Shader& surfaceShader = gouraudShading ? gouraudShader : phongShader;
+                    const Shader& surfaceShader = rasterShadingMode == 1 ? gouraudShader : phongShader;
                     const int leftWidth = framebufferWidth / 2;
                     const int rightWidth = framebufferWidth - leftWidth;
                     const int bottomHeight = framebufferHeight / 2;
@@ -864,7 +954,7 @@ int main(int argc, char** argv)
                 }
                 else if (birdEyeMode)
                 {
-                    const Shader& surfaceShader = gouraudShading ? gouraudShader : phongShader;
+                    const Shader& surfaceShader = rasterShadingMode == 1 ? gouraudShader : phongShader;
                     const float aspect = static_cast<float>(framebufferWidth) / framebufferHeight;
                     const glm::vec3 birdEye(0.0f, 68.0f, 0.01f);
                     renderOneView(surfaceShader, farmScene, entityRenderer, curvedRenderer,
@@ -874,13 +964,14 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                    const Shader& surfaceShader = gouraudShading ? gouraudShader : phongShader;
+                    const Shader& surfaceShader = rasterShadingMode == 1 ? gouraudShader : phongShader;
                     renderOneView(surfaceShader, farmScene, entityRenderer, curvedRenderer,
                                   textureManager.farm(), 0, 0, framebufferWidth, framebufferHeight,
                                   view, projection,
-                                  animationSystem.manualWorkerControl()
+                                  following
                                       ? workerViewEye : camera.Position);
                 }
+                drawInteractiveHud(hudRenderer,framebufferWidth,framebufferHeight);
             }
 
             if (smokeTest)
@@ -890,9 +981,9 @@ int main(int argc, char** argv)
                 if (error != GL_NO_ERROR)
                     throw runtime_error("Smoke render OpenGL error: " + to_string(error));
                 ++smokeFrame;
-                if (smokeFrame >= 6)
+                if (smokeFrame >= 7)
                 {
-                    cout << "Render smoke test passed: Phong, Gouraud, ray tracing, "
+                    cout << "Render smoke test passed: Flat, Gouraud, Phong, ray tracing, "
                             "four views, bird's-eye and worker control.\n";
                     glfwSetWindowShouldClose(window, true);
                 }

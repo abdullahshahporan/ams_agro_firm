@@ -13,19 +13,9 @@ LightingSystem::LightingSystem() = default;
 
 void LightingSystem::update(float deltaTime)
 {
-    if (movingLightEnabled_ && movingLightAnimated_)
-        movingLightPhase_ = fmod(movingLightPhase_ + deltaTime * 0.55f,
-                                 glm::two_pi<float>());
     if (spotlightSweep_)
         spotlightPhase_ = fmod(spotlightPhase_ + deltaTime * 0.75f,
                                glm::two_pi<float>());
-}
-
-glm::vec3 LightingSystem::movingLightPosition() const
-{
-    return glm::vec3(1.0f + 3.5f * cos(movingLightPhase_),
-                     4.0f + 0.3f * sin(2.0f * movingLightPhase_),
-                     2.0f + 3.0f * sin(movingLightPhase_));
 }
 
 void LightingSystem::aimSpotlight(float yawDegrees, float pitchDegrees)
@@ -50,7 +40,7 @@ glm::vec3 LightingSystem::activeSpotlightDirection() const
 bool LightingSystem::pointLightsEnabled() const
 {
     return shedLightsEnabled_ || fenceLightsEnabled_ ||
-           bannerLightEnabled_ || billboardLightEnabled_ || movingLightEnabled_;
+           bannerLightEnabled_ || billboardLightEnabled_;
 }
 
 void LightingSystem::togglePointLights()
@@ -60,7 +50,6 @@ void LightingSystem::togglePointLights()
     fenceLightsEnabled_ = newState;
     bannerLightEnabled_ = newState;
     billboardLightEnabled_ = newState;
-    movingLightEnabled_ = newState;
 }
 
 bool LightingSystem::pointLightEnabled(size_t index) const
@@ -106,15 +95,15 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
     shader.setFloat("fogEnd", TerrainRenderer::FogEnd);
     shader.setBool("directionalLightEnabled", directionalEnabled_);
     shader.setBool("pointLightsEnabled",
-                   shedLightsEnabled_ || bannerLightEnabled_ || billboardLightEnabled_
-                   || movingLightEnabled_);
+                   shedLightsEnabled_ || bannerLightEnabled_ || billboardLightEnabled_);
     shader.setBool("spotLightEnabled", spotlightEnabled_);
     shader.setBool("ambientEnabled", ambientEnabled_);
     shader.setBool("diffuseEnabled", diffuseEnabled_);
     shader.setBool("specularEnabled", specularEnabled_);
     shader.setVec3("sceneAmbient", nightMode_
         ? glm::vec3(0.030f, 0.040f, 0.075f)
-        : glm::vec3(0.080f, 0.085f, 0.075f));
+        : (afternoonMode_ ? glm::vec3(0.155f,0.125f,0.090f)
+                          : glm::vec3(0.145f,0.150f,0.135f)));
 
     shader.setVec3("dirLight.direction", glm::vec3(-0.38f, -1.0f, -0.28f));
     if (nightMode_)
@@ -125,9 +114,12 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
     }
     else
     {
-        shader.setVec3("dirLight.ambient", glm::vec3(0.25f, 0.25f, 0.23f));
-        shader.setVec3("dirLight.diffuse", glm::vec3(0.78f, 0.75f, 0.67f));
-        shader.setVec3("dirLight.specular", glm::vec3(0.55f, 0.55f, 0.50f));
+        shader.setVec3("dirLight.ambient", afternoonMode_
+            ? glm::vec3(0.36f,0.27f,0.18f) : glm::vec3(0.34f,0.35f,0.32f));
+        shader.setVec3("dirLight.diffuse", afternoonMode_
+            ? glm::vec3(1.10f,0.78f,0.46f) : glm::vec3(1.08f,1.04f,0.92f));
+        shader.setVec3("dirLight.specular", afternoonMode_
+            ? glm::vec3(0.78f,0.55f,0.34f) : glm::vec3(0.72f,0.72f,0.66f));
     }
 
     const auto& positions = pointLightPositions();
@@ -159,18 +151,6 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
         }
     }
 
-    // Sixth point light travels with the visible inspection drone.
-    shader.setVec3("pointLights[5].position", movingLightPosition());
-    shader.setFloat("pointLights[5].constant", 1.0f);
-    shader.setFloat("pointLights[5].linear", 0.045f);
-    shader.setFloat("pointLights[5].quadratic", 0.012f);
-    shader.setVec3("pointLights[5].ambient", movingLightEnabled_
-        ? glm::vec3(0.005f, 0.012f, 0.020f) : glm::vec3(0.0f));
-    shader.setVec3("pointLights[5].diffuse", movingLightEnabled_
-        ? glm::vec3(0.65f, 1.45f, 2.2f) : glm::vec3(0.0f));
-    shader.setVec3("pointLights[5].specular", movingLightEnabled_
-        ? glm::vec3(0.65f, 1.2f, 1.6f) : glm::vec3(0.0f));
-
     shader.setVec3("spotLight.position", spotlightPosition());
     shader.setVec3("spotLight.direction", activeSpotlightDirection());
     shader.setFloat("spotLight.cutOff", cos(glm::radians(19.0f)));
@@ -194,8 +174,9 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
 
 glm::vec3 LightingSystem::clearColor() const
 {
-    return nightMode_ ? glm::vec3(0.012f, 0.022f, 0.070f)
-                      : glm::vec3(0.52f, 0.78f, 0.94f);
+    if(nightMode_)return glm::vec3(0.012f, 0.022f, 0.070f);
+    return afternoonMode_ ? glm::vec3(0.78f,0.57f,0.35f)
+                          : glm::vec3(0.57f,0.82f,0.97f);
 }
 
 float LightingSystem::fixtureEmission(bool enabled) const

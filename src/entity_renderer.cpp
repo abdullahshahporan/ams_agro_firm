@@ -26,6 +26,7 @@ void EntityRenderer::render(const Shader& shader, const AnimationSystem& animati
         applyMaterial(shader, Materials::cloth());
         drawWorker(shader, worker);
     }
+    drawPoultryFeed(shader,animations.poultryFeedLevel());
     for (const Bird& bird : animations.birds())
     {
         applyMaterial(shader, Materials::cow());

@@ -37,6 +37,7 @@ private:
     void drawCalf(const Shader& shader, const Calf& calf) const;
     void drawCalfTether(const Shader& shader, const Calf& calf) const;
     void drawBird(const Shader& shader, const Bird& bird) const;
+    void drawPoultryFeed(const Shader& shader, float amount) const;
     void drawBovine(const Shader& shader, const glm::mat4& root,
                     const glm::vec3& bodyColor, const glm::vec3& patchColor,
                     float gaitAngle, float headDrop, float headTurn,

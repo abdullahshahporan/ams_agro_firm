@@ -45,9 +45,9 @@ respond to user commands and the active time of day.
 |---|---|
 | Environment | A 1,400-unit-radius circular countryside with continuous rolling hills, gentle distant curvature, groves and day/night distance haze; the farm, nearby fields and movement area remain flat |
 | Livestock | One milking cow, one ox, two calves, poultry, nesting hen and chicks; cattle use sculpted back/belly profiles, integrated shoulder anatomy, shorter/broader head meshes and on-skin coat markings |
-| Animation | Hierarchical body joints, walking, grazing, tails, worker tasks, rotating fans, gates, shelter routines and an orbiting inspection drone |
+| Animation | Hierarchical body joints, smooth movement/turns, worker tasks, rotating fans, animated gates and shelter routines |
 | Farm logic | Calf routes, manual or automatic worker hay delivery, daytime roaming and automatic night sheltering |
-| Lighting | Switchable Phong/Gouraud shading, directional sunlight, five fixed point lights, a moving inspection light, an aimable/sweeping spotlight and independent controls |
+| Lighting | Switchable Flat/Gouraud/Phong shading, directional sunlight, five fixed point lights and an aimable/sweeping spotlight |
 | Ray tracing | Optional real-time analytic farm view with ray/object intersections, hard shadows and one reflection bounce |
 | Navigation | Free-look camera with swept collision against gates, walls, fences, trees, stalls and equipment |
 | Camera modes | Perspective exploration, bird's-eye view and four simultaneous perspective/orthographic views |
@@ -57,11 +57,11 @@ respond to user commands and the active time of day.
 
 - Modern OpenGL 3.3 Core Profile with reusable VAO, VBO and EBO meshes
 - Model, view and projection transformations using GLM
-- Per-fragment Phong ambient, diffuse and specular lighting
+- Flat per-triangle, per-fragment Phong, and per-vertex Gouraud lighting
 - Selectable per-vertex Gouraud ambient, diffuse and specular lighting
 - GPU fragment-shader ray tracing with primary rays, shadow rays and reflective secondary rays
 - Multiple independently controlled light sources with emissive fixtures
-- A moving point light that follows the inspection drone, plus automatic or manual spotlight aiming
+- Automatic or manual spotlight aiming (the drone and its moving point light have been removed)
 - Indexed procedural meshes with positions, normals and UV coordinates
 - Texture mapping with mipmaps and multiple wrapping modes
 - Hierarchical modeling with local joint pivots
@@ -76,7 +76,7 @@ respond to user commands and the active time of day.
 
 Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\run_simulation.ps1`, or choose **Run AMS Agro Farm Guided Simulation** in VS Code's Run Task menu.
 
-The 164-second automatic tour in `src/simulation.cpp` uses the existing farm and animation modules. It shows the countryside, entrance, cattle, calves/poultry, buildings, curved geometry, a complete farmer hay delivery, Gouraud shading, night/moving lights, the separate analytic ray-tracing preview, four views and a final overview. On-screen captions and a progress bar explain each chapter. The ray-tracing chapter is labelled as simplified analytic geometry, not the full raster meshes.
+The automatic tour in `src/simulation.cpp` is exactly 200 seconds and tells one continuous farmer-led workday in twelve compact chapters. A fast aerial orbit covers the farm and its surrounding fields before the gate opens and the collision-aware camera enters through the central road. All mobile poultry begin inside their coop. The farmer leaves home, opens the water tap, pulls the hose to the shared cattle trough, fills it, retrieves the hose and returns it beside the pipe. He then releases the poultry, enters the instrument room for a visible feed sack and scatters grain for the moving hens and ducks. Next he completes two separate hay trips, delivering one pickup block for each adult cow, and walks to open the calf side gate. He returns to the instrument room, carries out a visible hoe, works a cultivated soil patch and puts the tool back on its rack. Finally he guides the calves home first, the poultry home second, and enters his house. A three-panel Flat/Gouraud/Phong shot compares the same sculpted cattle before the night-light sequence. The closing rain shot compares the complete Phong farm beside an analytic ray-traced wet view with hard shadow rays and a reflective secondary bounce. Dedicated doorway/interior camera angles and collision-safe detours prevent walls, roofs and other scenery from being crossed. The technical HUD labels every chapter, camera, render mode, light state and live task.
 
 Space pauses/resumes, R restarts, +/- changes speed (0.25x--4x), and Escape exits. After the tour, live farm animations continue. Normal interactive mode is unchanged. An already built executable can also be started with `--simulation`. Use `--simulation-test` for the hidden full-timeline render and worker-flow check.
 
@@ -141,7 +141,7 @@ After building, check all render modes in a hidden window:
 | `B` | Toggle bird's-eye view |
 | `V` | Toggle four-viewport mode |
 | `X` | Toggle the real-time ray-traced farm view |
-| `Y` | Switch the raster view between Phong and Gouraud shading |
+| `Y` | Cycle Flat, Gouraud and Phong shading |
 | `F2` | Control the worker with a following camera, or return to free camera |
 
 ### Farm Interaction
@@ -157,7 +157,11 @@ After building, check all render modes in a hidden window:
 | `F2` | Enter or leave direct worker control |
 | `W` / `S` in worker mode | Walk the worker forward / backward |
 | `A` / `D` in worker mode | Turn the worker left / right |
-| `E` in worker mode | Pick up hay beside the stack; place it near the cow trough |
+| `E` in worker mode | Pick/place hay, handle the hose, or scatter grain beside the moving poultry |
+| `F3` in worker mode | Turn the red water-valve wheel on/off while standing beside it |
+| `F7` | Enter/leave direct calf control (`W/S` move, `A/D` turn) |
+| `F8` | Select the next calf during direct control |
+| `F9` | Restock the three pickup hay bundles while the worker is home |
 | `L` | Recall or release all mobile animals |
 | `J` | Release or return both calves through the ox-side door |
 | `N` | Send both calves through the ox-side door to their fodder mats |
@@ -179,9 +183,7 @@ Number-row and numpad keys are both supported.
 | `1` / `Numpad 1` | Directional sunlight on/off |
 | `2` / `Numpad 2` | All point-light groups on/off |
 | `3` / `Numpad 3` | Entrance spotlight on/off |
-| `F3` | Moving inspection drone lamp on/off |
 | `F4` | Automatic entrance spotlight sweep on/off |
-| `F5` | Pause/resume the moving lamp's flight |
 | Arrow keys | Aim the entrance spotlight manually; manual aiming stops automatic sweep |
 | `4` / `Numpad 4` | Day/night mode |
 | `5` / `Numpad 5` | Ambient component on/off |
@@ -206,22 +208,44 @@ Number-row and numpad keys are both supported.
 - `F2` lets you walk the worker yourself. Approach the east side of the hay
   stack near `(-4.1, 3.4)` and press `E` to collect hay. Walk to the front of
   the milking cow's trough near `(-12.0, -3.8)` and press `E` to deliver it.
+- The small pickup bundles are solid obstacles while visible. The automatic
+  route approaches them from the open side, and their collision disappears
+  only after the selected bundle has been lifted.
+- In worker mode, walk to the red hand-wheel at the end of the tank pipe and
+  press `F3` to open the valve. Press `E` beside the hose nozzle to pick it up,
+  pull it to the second cattle trough near `(-8.0, -3.75)`, then press `E`
+  again. The nozzle stays over the vessel and its visible water level rises.
+  The hose sags as it moves and cannot stretch beyond its real maximum length.
+- The barn is now a working storage room with a shovel, kodal/hoe, rake,
+  pitchfork, wall rack and two metal buckets while its central walking lane
+  remains clear.
+- Walk the controlled farmer near `(5.5, 7.1)` and press `E` to scatter a
+  visible patch of grain. Mobile chickens and ducks continue walking around
+  the feeding area while the farmer performs a short scattering motion.
 - The surrounding terrain extends well beyond the original farm boundary;
   the fenced farm remains a distinct site inside crop fields and tree lines.
 - During daytime, released calves and poultry move through the open farm areas.
 - At night, mobile animals return to their shelters, calves are tied, and work/release
   commands are locked until daytime; the worker can still be sent home with `K`.
 - Independent light states remain controllable in both day and night modes.
-- Press `4` for night, `F3` for the moving cyan inspection light and `F4` for
-  the sweeping entrance spotlight. The moving fixture and its point-light
-  position share the same path. The spotlight housing follows its light
+- Press `4` for night and `F4` for the sweeping entrance spotlight. The spotlight housing follows its light
   direction in both automatic and manual modes.
 - Ray tracing (`X`) renders an analytic preview of the main buildings, entrance,
-  metal tank, trees, worker, delivered hay and moving lamp, with shadow rays and
+  metal tank, trees, worker and delivered hay, with shadow rays and
   one reflective bounce. This preview uses simplified shapes; the complete
   textured scene, animal rigs and curve meshes use the raster modes.
 - The window title always reports the active view, time of day and fixture states.
 - Gate, door, fence, wall and obstacle collision states remain synchronized with animation.
+
+### Interaction fixes and direct calf control
+
+- F7 switches between direct calf control and the camera; F8 selects calf 1/2. W/S move and A/D turn. The selected calf has a following camera, respects walls/gates/other calves, and requests its side door. J/N/L return to automatic commands. Direct control is disabled at night.
+- The pickup station has three individually owned bundles. Lifting removes the selected bundle immediately; delivery does not respawn it. F9 restocks only while the farmer is home. The larger stacked bales are scenery, not duplicate pickup objects. Cancelling an undelivered task returns its reserved bundle when appropriate.
+- Visible pickup hay uses its own live collision mask, so the worker, calves and camera cannot pass through a bundle that is still on the ground.
+- F3 operates the red valve only when the manually controlled farmer is beside it. E picks up/releases the flexible hose; placing it at the drinking trough fills the trough gradually while the valve is open.
+- The farmer waits for the animated inward-opening house door, uses a taller doorway and follows the raised floor/step. Door collision uses the actual leaf angle; a short sweep protects manual movement.
+- The interactive animation loop uses fixed 120 Hz steps, long updates are bounded/substepped, farmer/calf turns and the following camera are smoothed, and rendering requests 4x MSAA. Shader uniform locations are cached; the MinGW build uses -O2.
+- Regressions: `powershell -ExecutionPolicy Bypass -File tests/run_tests.ps1`; rendering: `bin/MinGW/AMSAgroFarm.exe --smoke-test` and `--simulation-test` from the project directory.
 
 ## Source Architecture
 
@@ -237,7 +261,7 @@ include/
 ├── animals/     Item state/data declarations
 ├── shared/      Reusable colours, transforms and curve vertex helper
 └── *.h          Shared system and renderer declarations
-shaders/         Phong, Gouraud and analytic ray-tracing shaders
+shaders/         Flat/Phong, Gouraud and analytic ray-tracing shaders
 textures/        Farm texture assets
 ```
 

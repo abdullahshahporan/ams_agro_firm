@@ -32,6 +32,17 @@ struct Worker
     float taskTimer;
     int routeIndex;
     bool manualWalking{false};
+    int hayIndex{-1};
+    glm::vec3 hayPickup{0.0f};
+    bool waitingDoor{false};
+    float gaitBlend{0.0f};
+    bool holdingHose{false};
+    bool scatteringFeed{false};
+    float scatteringTimer{0.0f};
+    bool holdingFeedBag{false};
+    bool holdingHoe{false};
+    bool digging{false};
+    float diggingTimer{0.0f};
 };
 
 #endif

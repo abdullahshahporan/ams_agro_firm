@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 using namespace std;
 
@@ -24,7 +25,9 @@ public:
         const string fragmentCode = readFile(fragmentPath);
 
         const unsigned int vertexShader = compile(GL_VERTEX_SHADER, vertexCode, vertexPath);
-        const unsigned int fragmentShader = compile(GL_FRAGMENT_SHADER, fragmentCode, fragmentPath);
+        unsigned int fragmentShader=0;
+        try { fragmentShader=compile(GL_FRAGMENT_SHADER,fragmentCode,fragmentPath); }
+        catch(...) { glDeleteShader(vertexShader);throw; }
 
         ID = glCreateProgram();
         glAttachShader(ID, vertexShader);
@@ -39,6 +42,7 @@ public:
             glGetProgramInfoLog(ID, sizeof(infoLog), nullptr, infoLog);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
+            glDeleteProgram(ID);ID=0;
             throw runtime_error(string("Shader program link failed:\n") + infoLog);
         }
 
@@ -62,39 +66,46 @@ public:
 
     void setVec3(const string& name, const glm::vec3& value) const
     {
-        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
+        glUniform3fv(location(name), 1, glm::value_ptr(value));
     }
 
     void setVec2(const string& name, const glm::vec2& value) const
     {
-        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, glm::value_ptr(value));
+        glUniform2fv(location(name), 1, glm::value_ptr(value));
     }
 
     void setBool(const string& name, bool value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value ? 1 : 0);
+        glUniform1i(location(name), value ? 1 : 0);
     }
 
     void setInt(const string& name, int value) const
     {
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1i(location(name), value);
     }
 
     void setFloat(const string& name, float value) const
     {
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+        glUniform1f(location(name), value);
     }
 
     void setMat4(const string& name, const glm::mat4& value) const
     {
         glUniformMatrix4fv(
-            glGetUniformLocation(ID, name.c_str()),
+            location(name),
             1,
             GL_FALSE,
             glm::value_ptr(value));
     }
 
 private:
+    mutable unordered_map<string,int> uniformLocations_;
+    int location(const string& name) const
+    {
+        const auto found=uniformLocations_.find(name);
+        if(found!=uniformLocations_.end())return found->second;
+        const int value=glGetUniformLocation(ID,name.c_str());uniformLocations_.emplace(name,value);return value;
+    }
     static string readFile(const char* path)
     {
         ifstream file(path);

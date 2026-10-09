@@ -44,7 +44,7 @@ if ($projectSources.Count -eq 0) {
 
 $compilerArguments = @(
     '-std=c++17',
-    '-O0',
+    '-O2',
     '-g',
     '-DGLFW_DLL',
     '-I', $includeDirectory,

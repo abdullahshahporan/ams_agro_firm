@@ -329,10 +329,12 @@ void EntityRenderer::drawBovineLeg(
     primitives_.drawSphere(shader, knee, glm::vec3(0.0f, -lowerLength * 0.46f, 0.0f),
                            glm::vec3(thickness * 0.66f, lowerLength * 1.14f, thickness * 0.72f),
                            legColor * 0.85f);
-    // Two flattened toe halves leave a readable cloven-hoof seam.
+    // Two rounded toe halves leave a readable cloven-hoof seam without the
+    // old square "shoe" look.
     for (float side : {-1.0f, 1.0f})
-        cubes_.drawColored(shader, knee, glm::vec3(0.035f, -lowerLength - 0.025f,
-                                                  side * thickness * 0.28f),
-                           glm::vec3(thickness * 1.10f, 0.13f, thickness * 0.48f),
-                           glm::vec3(0.12f, 0.105f, 0.088f));
+        primitives_.drawSphere(shader,knee,glm::vec3(0.055f,-lowerLength-0.018f,
+                                                     side*thickness*.28f),
+                               glm::vec3(thickness*1.15f,.15f,thickness*.48f),
+                               glm::vec3(.12f,.105f,.088f),-8.0f,
+                               glm::vec3(0.0f,0.0f,1.0f));
 }

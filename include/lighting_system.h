@@ -16,8 +16,6 @@ public:
     void setupShader(const Shader& shader, const glm::vec3& viewPosition) const;
     void update(float deltaTime);
     void aimSpotlight(float yawDegrees, float pitchDegrees);
-    void toggleMovingLight() { movingLightEnabled_ = !movingLightEnabled_; }
-    void toggleMovingLightMotion() { movingLightAnimated_ = !movingLightAnimated_; }
     void toggleSpotlightSweep() { spotlightSweep_ = !spotlightSweep_; }
 
     void toggleDirectional() { directionalEnabled_ = !directionalEnabled_; }
@@ -31,6 +29,7 @@ public:
     void toggleAmbient() { ambientEnabled_ = !ambientEnabled_; }
     void toggleDiffuse() { diffuseEnabled_ = !diffuseEnabled_; }
     void toggleSpecular() { specularEnabled_ = !specularEnabled_; }
+    void setAfternoon(bool afternoon) { afternoonMode_ = afternoon; }
 
     bool directionalEnabled() const { return directionalEnabled_; }
     bool pointLightsEnabled() const;
@@ -43,12 +42,9 @@ public:
     bool ambientEnabled() const { return ambientEnabled_; }
     bool diffuseEnabled() const { return diffuseEnabled_; }
     bool specularEnabled() const { return specularEnabled_; }
-    bool movingLightEnabled() const { return movingLightEnabled_; }
-    bool movingLightAnimated() const { return movingLightAnimated_; }
     bool spotlightSweep() const { return spotlightSweep_; }
-    glm::vec3 movingLightPosition() const;
+    bool afternoonMode() const { return afternoonMode_; }
     glm::vec3 activeSpotlightDirection() const;
-    float movingLightPhase() const { return movingLightPhase_; }
 
     glm::vec3 clearColor() const;
     array<float, 5> pointFixtureEmissions() const;
@@ -73,10 +69,8 @@ private:
     bool ambientEnabled_{true};
     bool diffuseEnabled_{true};
     bool specularEnabled_{true};
-    bool movingLightEnabled_{false};
-    bool movingLightAnimated_{true};
+    bool afternoonMode_{false};
     bool spotlightSweep_{false};
-    float movingLightPhase_{0.0f};
     float spotlightPhase_{0.0f};
     float spotlightYaw_{0.0f};
     float spotlightPitch_{-30.96376f};

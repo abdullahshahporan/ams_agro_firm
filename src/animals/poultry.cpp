@@ -4,12 +4,30 @@
 #include <glm/gtx/norm.hpp>
 #include "shared/entity_transform.h"
 #include "material.h"
+#include "shared/farm_interaction.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
 #include <algorithm>
 
 using namespace std;
 using namespace EntityTransform;
+
+void EntityRenderer::drawPoultryFeed(const Shader& shader,float amount) const
+{
+    if(amount<=0.001f)return;
+    applyMaterial(shader,Materials::hay());
+    const int count=static_cast<int>(ceil(glm::clamp(amount,0.0f,1.0f)*36.0f));
+    for(int index=0;index<count;++index)
+    {
+        const float angle=index*2.39996323f;
+        const float radius=0.12f+0.075f*sqrt(static_cast<float>(index));
+        const glm::vec3 position=FarmInteraction::PoultryFeedPosition+
+            glm::vec3(cos(angle)*radius,0.045f,sin(angle)*radius);
+        cubes_.drawColored(shader,position,glm::vec3(0.055f,0.035f,0.085f),
+                           index%3==0?glm::vec3(0.96f,0.73f,0.18f):glm::vec3(0.74f,0.48f,0.10f),
+                           index*17.0f,glm::vec3(0,1,0));
+    }
+}
 
 void EntityRenderer::drawBird(const Shader& shader, const Bird& bird) const
 {
@@ -102,15 +120,36 @@ void AnimationSystem::updateBirdPath(Bird& bird, float deltaTime)
 void AnimationSystem::updateBirdNavigation(Bird& bird, float deltaTime,
                                            bool shelterRequested)
 {
-    glm::vec3 target = bird.shelterPosition;
-    if (!shelterRequested)
-        target = bird.pathCenter + glm::vec3(bird.pathRadius.x * cos(bird.pathAngle),
-                                             0.0f,
-                                             bird.pathRadius.y * sin(bird.pathAngle));
+    const float laneX=bird.shelterPosition.x;
+    const glm::vec3 insideDoor(laneX,0.0f,5.95f);
+    const glm::vec3 outsideDoor(laneX,0.0f,5.05f);
+    const glm::vec3 outsideApproach(7.25f+(laneX-9.2f)*0.12f,0.0f,4.45f);
+    const glm::vec3 fieldTarget=bird.pathCenter+
+        glm::vec3(bird.pathRadius.x*cos(bird.pathAngle),0.0f,
+                  bird.pathRadius.y*sin(bird.pathAngle));
+    glm::vec3 target;
+    bool finalTarget=false;
+    if(!shelterRequested)
+    {
+        if(bird.navigationStage==0)target=insideDoor;
+        else if(bird.navigationStage==1)target=outsideDoor;
+        else {target=fieldTarget;finalTarget=true;}
+    }
+    else
+    {
+        if(bird.navigationStage==0)target=outsideApproach;
+        else if(bird.navigationStage==1)target=outsideDoor;
+        else if(bird.navigationStage==2)target=insideDoor;
+        else {target=bird.shelterPosition;finalTarget=true;}
+    }
     if (moveToward(bird.position, bird.yaw, target,
                    max(0.72f, bird.speed), deltaTime))
-        bird.routeState = shelterRequested
-            ? Calf::RouteState::Sheltered : Calf::RouteState::Roaming;
+    {
+        if(!finalTarget){++bird.navigationStage;return;}
+        bird.navigationStage=0;
+        bird.routeState=shelterRequested?Calf::RouteState::Sheltered
+                                        :Calf::RouteState::Roaming;
+    }
 }
 
 void AnimationSystem::updateBirds(float deltaTime)

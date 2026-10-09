@@ -1,6 +1,6 @@
 #version 330 core
 
-#define NR_POINT_LIGHTS 6
+#define NR_POINT_LIGHTS 5
 #define FAR_DISTANCE 10000.0
 #define EPSILON 0.002
 
@@ -71,6 +71,7 @@ uniform bool workerCarryingHay;
 uniform vec3 workerPosition;
 uniform float workerFeedProgress;
 uniform int deliveredHayLoads;
+uniform float weatherWetness;
 
 void setMiss(out Hit hit)
 {
@@ -174,7 +175,7 @@ void testSphere(inout Hit hit, vec3 rayOrigin, vec3 rayDirection,
                   shininess, reflectivity);
 }
 
-bool traceScene(vec3 rayOrigin, vec3 rayDirection, bool includeLightFixture,
+bool traceScene(vec3 rayOrigin, vec3 rayDirection,
                 out Hit hit)
 {
     setMiss(hit);
@@ -197,14 +198,33 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection, bool includeLightFixture,
             }
             float grid = mod(floor(point.x) + floor(point.z), 2.0);
             color *= mix(0.92, 1.05, grid);
+            color=mix(color,color*vec3(0.54,0.62,0.69),weatherWetness*0.52);
             acceptHit(hit, groundT, rayOrigin, rayDirection,
-                      vec3(0.0, 1.0, 0.0), color, 8.0, 0.03);
+                      vec3(0.0, 1.0, 0.0), color,
+                      mix(8.0,96.0,weatherWetness),mix(0.03,0.58,weatherWetness));
         }
     }
 
-    // Main farm buildings, placed at the same main coordinates as the raster scene.
-    testBox(hit, rayOrigin, rayDirection, vec3(-10.0, 1.65, -8.0),
-            vec3(4.25, 1.65, 3.62), vec3(0.46, 0.18, 0.10), 16.0, 0.04);
+    // The cow shed is open-sided just like the raster model: foundation,
+    // roof, posts and a brick service wall instead of one solid block.
+    testBox(hit,rayOrigin,rayDirection,vec3(-10.0,0.10,-8.0),
+            vec3(4.10,0.10,3.50),vec3(0.42),24.0,0.10);
+    testBox(hit,rayOrigin,rayDirection,vec3(-10.0,3.62,-8.0),
+            vec3(4.35,0.18,3.82),vec3(0.22,0.25,0.27),72.0,0.25);
+    for(int sideX=-1;sideX<=1;sideX+=2)
+        for(int sideZ=-1;sideZ<=1;sideZ+=2)
+            testBox(hit,rayOrigin,rayDirection,
+                    vec3(-10.0+sideX*3.75,1.85,-8.0+sideZ*3.05),
+                    vec3(0.15,1.85,0.15),vec3(0.075,0.080,0.078),48.0,0.12);
+    testBox(hit,rayOrigin,rayDirection,vec3(-13.78,1.0,-8.0),
+            vec3(0.16,0.90,2.80),vec3(0.46,0.18,0.10),16.0,0.04);
+    // Two concrete drinking/feed troughs make the cattle area readable.
+    testBox(hit,rayOrigin,rayDirection,vec3(-11.8,0.48,-4.65),
+            vec3(1.85,0.48,0.55),vec3(0.48,0.49,0.46),20.0,0.08);
+    testBox(hit,rayOrigin,rayDirection,vec3(-7.6,0.48,-4.65),
+            vec3(1.85,0.48,0.55),vec3(0.48,0.49,0.46),20.0,0.08);
+
+    // Main farm buildings, placed at the same coordinates as the raster scene.
     testBox(hit, rayOrigin, rayDirection, vec3(11.0, 1.85, -11.0),
             vec3(3.40, 1.85, 2.90), vec3(0.50, 0.20, 0.10), 18.0, 0.05);
     testBox(hit, rayOrigin, rayDirection, vec3(10.0, 1.35, 7.3),
@@ -220,10 +240,10 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection, bool includeLightFixture,
     testBox(hit, rayOrigin, rayDirection, vec3(0.0, 4.72, 15.5),
             vec3(4.85, 0.55, 0.42), vec3(0.30, 0.10, 0.04), 18.0, 0.05);
 
-    // The metal water tank is deliberately reflective to demonstrate the
-    // secondary ray bounce in a useful object already present in the farm.
-    testSphere(hit, rayOrigin, rayDirection, vec3(13.0, 3.85, 0.5),
-               1.32, vec3(0.25, 0.48, 0.61), 96.0, 0.68);
+    // The metal water tank keeps the same rectangular proportions as the
+    // raster scene and is reflective enough to demonstrate a secondary ray.
+    testBox(hit, rayOrigin, rayDirection, vec3(13.0, 3.85, 0.5),
+            vec3(2.0, 1.25, 1.70), vec3(0.25, 0.48, 0.61), 96.0, 0.62);
     testBox(hit, rayOrigin, rayDirection, vec3(13.0, 0.45, 0.5),
             vec3(1.65, 0.45, 1.65), vec3(0.40, 0.42, 0.43), 30.0, 0.12);
 
@@ -260,21 +280,13 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection, bool includeLightFixture,
     testSphere(hit, rayOrigin, rayDirection, vec3(15.0, 3.15, 10.5),
                1.55, vec3(0.10, 0.42, 0.08), 10.0, 0.02);
 
-    if (includeLightFixture)
-    {
-        float previousT = hit.t;
-        testSphere(hit, rayOrigin, rayDirection, pointLights[5].position,
-                   0.14, vec3(0.30, 0.75, 1.0), 32.0, 0.0);
-        if (hit.t < previousT && length(pointLights[5].diffuse) > 0.0)
-            hit.emission = vec3(0.30, 1.2, 2.0);
-    }
     return hit.t < FAR_DISTANCE;
 }
 
 bool inShadow(vec3 origin, vec3 direction, float maximumDistance)
 {
     Hit blocker;
-    if (!traceScene(origin, direction, false, blocker))
+    if (!traceScene(origin, direction, blocker))
         return false;
     return blocker.t < maximumDistance;
 }
@@ -374,7 +386,7 @@ void main()
 
     Hit primaryHit;
     vec3 color;
-    if (traceScene(viewPos, rayDirection, true, primaryHit))
+    if (traceScene(viewPos, rayDirection, primaryHit))
     {
         color = shadeHit(primaryHit, rayDirection);
         if (primaryHit.reflectivity > 0.0)
@@ -384,7 +396,7 @@ void main()
                                    + primaryHit.normal * EPSILON * 3.0;
             Hit reflectedHit;
             vec3 reflectedColor = skyColor(reflectedDirection);
-            if (traceScene(reflectedOrigin, reflectedDirection, true, reflectedHit))
+            if (traceScene(reflectedOrigin, reflectedDirection, reflectedHit))
                 reflectedColor = shadeHit(reflectedHit, reflectedDirection);
             color = mix(color, reflectedColor, primaryHit.reflectivity);
         }

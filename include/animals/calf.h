@@ -25,8 +25,10 @@ struct Calf
         Sheltered,
         GoingToField,
         GoingToFeed,
-        Feeding
+        Feeding,
+        Manual
     } routeState;
+    bool manualWalking{false};
 };
 
 enum class CalfDestination

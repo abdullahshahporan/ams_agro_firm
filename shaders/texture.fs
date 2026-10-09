@@ -1,6 +1,6 @@
 #version 330 core
 
-#define NR_POINT_LIGHTS 6
+#define NR_POINT_LIGHTS 5
 
 struct Material
 {
@@ -69,6 +69,7 @@ uniform vec3 sceneAmbient;
 uniform int cowCoatMode;
 uniform vec3 cowPatchColor;
 uniform vec3 cowMuzzleColor;
+uniform bool flatShading;
 
 // Markings lie on the actual skin, not on floating geometry. The local
 // sphere position keeps the pattern attached while the animal moves.
@@ -149,7 +150,13 @@ void main()
 {
     vec4 sampled = useTexture ? texture(texture1, TexCoord) : vec4(1.0);
     vec3 albedo = bovineAlbedo(sampled.rgb * objectTint);
-    vec3 normal = normalize(Normal);
+    // Flat mode deliberately derives one normal from each rasterised
+    // triangle. Phong mode keeps the smoothly interpolated vertex normal.
+    vec3 normal = flatShading
+        ? normalize(cross(dFdx(FragPos), dFdy(FragPos)))
+        : normalize(Normal);
+    if (!gl_FrontFacing)
+        normal = -normal;
     vec3 viewDirection = normalize(viewPos - FragPos);
     vec3 result = vec3(0.0);
 
