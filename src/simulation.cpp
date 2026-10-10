@@ -4,7 +4,7 @@
 #include "farm_scene.h"
 #include "entity_renderer.h"
 #include "curved_renderer.h"
-#include "ray_trace_renderer.h"
+#include "wet_reflection_renderer.h"
 #include "collision_system.h"
 #include "lighting_system.h"
 #include <GLFW/glfw3.h>
@@ -23,20 +23,24 @@ using namespace std;
 namespace
 {
 constexpr float Tick = 1.0f / 60.0f;
+constexpr double NightRainStart=18.0;
+constexpr double DuskTransitionEnd=8.0;
+constexpr double RainInspectionStart=27.0;
+constexpr double RainInspectionArrive=31.3;
 struct Chapter { const char* name; const char* caption; double seconds; };
 const array<Chapter, 12> Chapters = {{
-    {"WHOLE FARM AERIAL", "A FOUR SECOND DRONE-STYLE ORBIT ESTABLISHES THE FARM AND ITS SURROUNDINGS", 4},
-    {"BANNER AND GATE ARRIVAL", "THE CAMERA FEATURES THE NAME BANNER, DESCENDS TO THE GATE AND ENTERS ON THE ROAD", 8},
-    {"TWO HAY DELIVERIES", "THE FARMER LEAVES HOME AND CARRIES TWO SEPARATE HAY BLOCKS TO THE ADULT COWS", 32},
+    {"MORNING AERIAL", "AN OBLIQUE AERIAL VIEW ESTABLISHES THE WHOLE FARM AND THE SURROUNDING FIELDS", 4},
+    {"BANNER AND GATE ARRIVAL", "THE BILLBOARD AND NAME BANNER INTRODUCE THE FARM BEFORE THE CAMERA ENTERS", 10},
+    {"TWO HAY DELIVERIES", "THE FARMER LEAVES HOME AND CARRIES TWO SEPARATE HAY BLOCKS TO THE ADULT COWS", 30},
     {"POULTRY RELEASE AND FEED", "THE COOP GATE OPENS; THE FARMER COLLECTS A FEED BOX THROUGH THE BARN DOORWAY", 25},
-    {"HOE COLLECTION AND CALF RELEASE", "HE COLLECTS THE HOE, OPENS THE CALF GATE AND STANDS CLEAR OF THE DOORWAY", 25},
-    {"WORKING BESIDE THE HAY", "THE FARMER USES THE HOE ON A CULTIVATED PATCH BESIDE THE HAY AREA", 15},
+    {"HOE COLLECTION AND CALF RELEASE", "HE RETURNS THE EMPTY FEED BOX, COLLECTS THE HOE AND RELEASES THE CALVES", 23},
+    {"LOWERING THE HAY PILE", "THE FARMER HOOKS A TOP BALE WITH HIS HOE AND LOWERS IT INTO A GROUND PILE", 13},
+    {"DAYLIGHT VESSEL SHADING", "THE BEZIER MILK VESSEL SHOWS FLAT, GOURAUD AND PHONG HIGHLIGHTS IN DAYLIGHT", 6},
     {"AFTERNOON RETURN ROUND", "HE RETURNS THE HOE, THEN GUIDES THE CALVES AND POULTRY THROUGH THEIR REAL DOORS", 35},
-    {"FINAL WATERING ROUND", "ONLY AFTER EVERY ANIMAL IS HOME, HE FILLS THE CATTLE TROUGH AND RETURNS THE HOSE", 28},
+    {"FINAL WATERING ROUND", "BOTH COWS RECEIVE FRESH WATER AFTER THE MORNING HAY HAS BEEN EATEN", 24},
     {"SECURING THE FARM", "THE ANIMAL GATES AND MAIN GATE CLOSE BEFORE THE FARMER RETURNS TO HIS HOUSE", 10},
-    {"GRAPHICS EFFECT STUDY", "FLAT, GOURAUD AND PHONG LIGHTING ARE COMPARED ON THE SAME SCULPTED CATTLE", 7},
-    {"NIGHT AND RAY-TRACED RAIN", "ALL FARM LIGHTS GLOW BEFORE A WET RAY-TRACING ANALYSIS BEGINS", 7},
-    {"AFTER THE RAIN", "THE COW SHED AND NAMEPLATE LIGHTS TURN OFF WHILE THE OTHER LIGHTS REMAIN ON", 4}
+    {"DUSK NIGHT AERIAL AND RAIN", "AFTERNOON FADES TO NIGHT AS FARM LIGHTS COME ON, FOLLOWED BY RAIN AND INSPECTION", 40},
+    {"AFTER THE RAIN", "THE FARMER RETURNS HOME; SHED AND NAMEPLATE LIGHTS TURN OFF WHILE THE OTHERS STAY ON", 20}
 }};
 
 double totalSeconds()
@@ -76,7 +80,10 @@ public:
     bool sawPickup{false}, sawCarry{false}, sawFeed{false}, workerReturned{false};
     bool waterValveTurned{false}, waterHoseTaken{false}, waterHosePlaced{false};
     bool sawWaterFill{false}, hoseRetrieved{false}, hoseReturned{false};
-    bool poultryReleased{false}, feedBagTaken{false}, poultryFed{false};
+    bool secondWaterPlaced{false}, firstWaterRetrieved{false};
+    bool poultryReleased{false}, feedBagTaken{false}, poultryFed{false}, feedBoxReturned{false};
+    bool inspectionStarted{false}, umbrellaShown{false};
+    glm::vec3 inspectionHome{0};
     bool firstHayPicked{false}, secondHayPicked{false}, calvesReleased{false};
     bool hoeTaken{false}, hoeWorkStarted{false}, hoeReturned{false};
     bool calvesRecalled{false}, poultryRecalled{false};
@@ -99,29 +106,34 @@ public:
         if(chapter==3)poultryStart=animals.workers()[0].position;
         if(chapter==4)calfGateStart=animals.workers()[0].position;
         if(chapter==5)hoeStart=animals.workers()[0].position;
-        if(chapter==6)
+        if(chapter==7)
         {
             lighting.setAfternoon(true);
+            animals.consumeCowHay();
             herdingStart=animals.workers()[0].position;
         }
-        if(chapter==7)waterStart=animals.workers()[0].position;
-        if(chapter==8)homeStart=animals.workers()[0].position;
+        if(chapter==8)waterStart=animals.workers()[0].position;
+        if(chapter==9)homeStart=animals.workers()[0].position;
         if(chapter==10)
         {
             animals.sendWorkerHome();
-            lighting.setAfternoon(false);
-            if(!lighting.nightMode())lighting.toggleDayNight();
-            animals.setNightMode(true);
-            configureNightLights(true);
+            lighting.setAfternoon(true);
+            lighting.setDuskProgress(0.0f);
+            configureNightLights(0);
         }
         if(chapter==11)
         {
-            configureNightLights(false);
-            completedLightShow=true;
+            animals.setWorkerUmbrella(false);
+            homeStart=animals.workers()[0].position;
+            workerSentHome=false;
+            configureNightLights(0);
         }
     }
     void update(float dt)
     {
+        // Walking is renewed only by a movement command in this tick. It
+        // must stop while the farmer lifts, scatters, hooks a bale or waits.
+        animals.stopManualWorker();
         if (!complete)
         {
             elapsed += dt;
@@ -151,7 +163,7 @@ public:
             const array<glm::vec3,5> cowsToHayTwo={{{-12.0f,0,-3.8f},{-7.0f,0,-3.75f},
                 {-3.0f,0,-3.0f},{-2.0f,0,.3f},FarmInteraction::hayApproachPosition(1)}};
             const array<glm::vec3,5> hayToCowsTwo={{FarmInteraction::hayApproachPosition(1),{-2.0f,0,.3f},
-                {-3.0f,0,-3.0f},{-7.0f,0,-3.75f},{-12.0f,0,-3.8f}}};
+                {-3.0f,0,-3.0f},{-6.0f,0,-3.75f},{-8.0f,0,-3.8f}}};
             if(time>=.4&&time<6.0)moveDemonstrationWorker(pointOnPath(homeToHay,static_cast<float>((time-.4)/5.6)),dt);
             if(time>=6.1&&!firstHayPicked)firstHayPicked=animals.interactWithWorker();
             if(time>=7.2&&time<12.0&&firstHayPicked)
@@ -167,9 +179,9 @@ public:
         if(chapter==3)
         {
             const array<glm::vec3,6> toCoop={{poultryStart,{-7.0f,0,-3.7f},{-2.0f,0,0.0f},
-                {2.5f,0,3.5f},{5.8f,0,4.5f},{7.25f,0,4.45f}}};
-            const array<glm::vec3,7> toFeedStore={{{7.25f,0,4.45f},{6.2f,0,0.5f},
-                {6.7f,0,-4.8f},{9.2f,0,-6.8f},{11.0f,0,-7.45f},
+                {2.5f,0,3.5f},{5.8f,0,4.5f},{12.45f,0,5.0f}}};
+            const array<glm::vec3,7> toFeedStore={{{12.45f,0,5.0f},{7.0f,0,4.5f},
+                {6.0f,0,-4.8f},{9.2f,0,-6.8f},{11.0f,0,-7.45f},
                 {11.0f,0,-9.25f},FarmInteraction::FeedStorePosition}};
             const array<glm::vec3,7> toPoultry={{FarmInteraction::FeedStorePosition,{11.0f,0,-9.25f},
                 {11.0f,0,-7.45f},{8.5f,0,-5.2f},{6.5f,0,-1.0f},
@@ -181,92 +193,162 @@ public:
             if(time>=14.2&&time<22.2&&feedBagTaken)
                 moveDemonstrationWorker(pointOnPath(toPoultry,static_cast<float>((time-14.2)/8.0)),dt);
             if(time>=22.4&&!poultryFed)poultryFed=animals.scatterPoultryFeed();
+            if(time>=23.4&&poultryFed)
+            {
+                const array<glm::vec3,7> returnBox={{FarmInteraction::PoultryFeedPosition,{6.0f,0,3.6f},
+                    {6.5f,0,-1.0f},{8.5f,0,-5.2f},{11.0f,0,-7.45f},{11.0f,0,-9.25f},FarmInteraction::FeedStorePosition}};
+                moveDemonstrationWorker(pointOnPath(returnBox,static_cast<float>((time-23.4)/7.5)),dt);
+            }
         }
         if(chapter==4)
         {
-            const array<glm::vec3,7> toHoe={{calfGateStart,{6.2f,0,3.5f},{6.6f,0,-4.8f},
-                {9.2f,0,-6.8f},{11.0f,0,-7.45f},{11.0f,0,-9.25f},FarmInteraction::HoeStorePosition}};
+            const array<glm::vec3,7> returnBox={{FarmInteraction::PoultryFeedPosition,{6.0f,0,3.6f},
+                {6.5f,0,-1.0f},{8.5f,0,-5.2f},{11.0f,0,-7.45f},{11.0f,0,-9.25f},FarmInteraction::FeedStorePosition}};
+            const array<glm::vec3,2> toHoe={{FarmInteraction::FeedStorePosition,FarmInteraction::HoeStorePosition}};
             const array<glm::vec3,8> toCalfSide={{FarmInteraction::HoeStorePosition,{11.0f,0,-9.25f},
                 {11.0f,0,-7.45f},{7.0f,0,-5.0f},{2.0f,0,-4.5f},{-1.5f,0,-5.5f},
                 {-3.6f,0,-8.1f},{-4.30f,0,-11.25f}}};
-            if(time>=.3&&time<8.0)moveDemonstrationWorker(pointOnPath(toHoe,static_cast<float>((time-.3)/7.7)),dt);
-            if(time>=8.2&&!hoeTaken)hoeTaken=animals.pickupHoe();
-            if(time>=8.8&&time<18.5&&hoeTaken)
-                moveDemonstrationWorker(pointOnPath(toCalfSide,static_cast<float>((time-8.8)/9.7)),dt);
-            if(time>=18.7&&!calvesReleased){animals.toggleCalfShed();calvesReleased=true;}
+            if(time<5.9)moveDemonstrationWorker(pointOnPath(returnBox,static_cast<float>((time+1.6)/7.5)),dt);
+            if(time>=6.0&&!feedBoxReturned)feedBoxReturned=animals.returnFeedBox();
+            if(time>=6.0&&time<6.8&&feedBoxReturned)moveDemonstrationWorker(pointOnPath(toHoe,static_cast<float>((time-6.0)/.8)),dt);
+            if(time>=6.9&&!hoeTaken&&feedBoxReturned)hoeTaken=animals.pickupHoe();
+            if(time>=7.2&&time<17.0&&hoeTaken)
+                moveDemonstrationWorker(pointOnPath(toCalfSide,static_cast<float>((time-7.2)/9.8)),dt);
+            if(time>=17.0)
+            {
+                const Worker& worker=animals.workers()[0];
+                const glm::vec3 toCalves=glm::vec3(-6.75f,0,-9.4f)-worker.position;
+                const float facing=glm::degrees(atan2(-toCalves.z,toCalves.x));
+                animals.turnManualWorker(FarmInteraction::turnToward(worker.yaw,facing,dt)-worker.yaw);
+            }
+            if(time>=17.7&&!calvesReleased){animals.toggleCalfShed();calvesReleased=true;}
         }
         if(chapter==5)
         {
             const array<glm::vec3,6> toWork={{hoeStart,{-3.6f,0,-7.0f},{-2.5f,0,-3.0f},
-                {-2.1f,0,1.5f},{-2.0f,0,4.5f},FarmInteraction::HoeWorkPosition}};
+                {-2.1f,0,.5f},{-3.2f,0,1.0f},FarmInteraction::HoeWorkPosition}};
             if(time>=.3&&time<7.5)moveDemonstrationWorker(pointOnPath(toWork,static_cast<float>((time-.3)/7.2)),dt);
             if(time>=7.7&&!hoeWorkStarted)hoeWorkStarted=animals.beginHoeWork();
+            if(hoeWorkStarted&&time<12.3)
+            {
+                // Follow the lowering bale along the clear east edge of the
+                // stack; this short step has a visible task and tool contact.
+                const float pull=glm::smoothstep(.12f,.85f,animals.hayWorkProgress());
+                glm::vec3 working=FarmInteraction::HoeWorkPosition;
+                working.z+=3.35f*pull;
+                animals.moveManualWorker(working,dt);
+                animals.stopManualWorker();
+                animals.turnManualWorker(180.0f-animals.workers()[0].yaw);
+            }
         }
-        if(chapter==6)
+        if(chapter==7)
         {
+            const double workTime=time-2.0; // two seconds for the dusk aerial
             const array<glm::vec3,7> backToHoe={{herdingStart,{1.0f,0,3.0f},{5.5f,0,-1.0f},
                 {7.0f,0,-5.0f},{11.0f,0,-7.45f},{11.0f,0,-9.25f},FarmInteraction::HoeStorePosition}};
             const array<glm::vec3,8> toCalves={{FarmInteraction::HoeStorePosition,{11.0f,0,-9.25f},
                 {11.0f,0,-7.45f},{7.0f,0,-5.0f},{2.0f,0,-4.5f},{-1.5f,0,-5.5f},
                 {-3.6f,0,-8.1f},{-4.30f,0,-11.25f}}};
             const array<glm::vec3,7> toBirds={{{-4.30f,0,-11.25f},{-2.5f,0,-6.0f},
-                {0.0f,0,-2.0f},{2.5f,0,2.0f},{4.8f,0,4.2f},{6.3f,0,4.45f},{7.25f,0,4.45f}}};
-            if(time>=.2&&time<7.4)moveDemonstrationWorker(pointOnPath(backToHoe,static_cast<float>((time-.2)/7.2)),dt);
-            if(time>=7.6&&!hoeReturned)hoeReturned=animals.returnHoe();
-            if(time>=8.0&&time<16.0)moveDemonstrationWorker(pointOnPath(toCalves,static_cast<float>((time-8.0)/8.0)),dt);
-            if(time>=16.2&&!calvesRecalled){animals.sendCalvesHome();calvesRecalled=true;}
-            if(time>=17.0&&time<23.0)moveDemonstrationWorker(pointOnPath(toBirds,static_cast<float>((time-17.0)/6.0)),dt);
-            if(time>=23.2&&!poultryRecalled)
+                {0.0f,0,-2.0f},{2.5f,0,2.0f},{4.8f,0,4.2f},{6.3f,0,4.45f},{12.45f,0,5.0f}}};
+            if(workTime>=.2&&workTime<7.4)moveDemonstrationWorker(pointOnPath(backToHoe,static_cast<float>((workTime-.2)/7.2)),dt);
+            if(workTime>=7.6&&!hoeReturned)hoeReturned=animals.returnHoe();
+            if(workTime>=8.0&&workTime<16.0)moveDemonstrationWorker(pointOnPath(toCalves,static_cast<float>((workTime-8.0)/8.0)),dt);
+            if(workTime>=16.2&&!calvesRecalled){animals.sendCalvesHome();calvesRecalled=true;}
+            if(workTime>=17.0&&workTime<23.0)moveDemonstrationWorker(pointOnPath(toBirds,static_cast<float>((workTime-17.0)/6.0)),dt);
+            if(workTime>=23.2&&!poultryRecalled)
             {
                 feedGoneBeforeReturn=animals.poultryFeedLevel()<=0.001f;
                 animals.sendPoultryHome();poultryRecalled=true;
             }
         }
-        if(chapter==7)
+        if(chapter==8)
         {
             const array<glm::vec3,4> toTap={{waterStart,{7.0f,0,4.6f},{7.0f,0,4.0f},{7.10f,0,3.85f}}};
             const array<glm::vec3,6> toTrough={{{7.10f,0,3.85f},{4.5f,0,5.0f},{1.0f,0,4.0f},
-                {-2.5f,0,1.0f},{-3.0f,0,-3.75f},FarmInteraction::WaterTroughInteraction}};
+                {-2.5f,0,1.0f},{-3.0f,0,-3.75f},FarmInteraction::cowTroughApproach(0)}};
+            const array<glm::vec3,2> betweenTroughs={{FarmInteraction::cowTroughApproach(0),
+                FarmInteraction::cowTroughApproach(1)}};
             const array<glm::vec3,6> backToTap={{FarmInteraction::WaterTroughInteraction,
                 {-3.0f,0,-3.75f},{-2.5f,0,1.0f},{1.0f,0,4.0f},{4.5f,0,5.0f},{7.10f,0,3.85f}}};
-            if(time>=.4&&time<3.4)moveDemonstrationWorker(pointOnPath(toTap,static_cast<float>((time-.4)/3.0)),dt);
-            if(time>=3.6&&!waterValveTurned)
+            if(time>=.4&&time<3.0)moveDemonstrationWorker(pointOnPath(toTap,static_cast<float>((time-.4)/2.6)),dt);
+            if(time>=3.1&&!waterValveTurned&&animalsReturned)
             {
                 waterValveTurned=animals.toggleWaterValve();
                 if(waterValveTurned)waterBeganAfterAnimalsReturned=animalsReturned;
             }
-            if(time>=4.2&&!waterHoseTaken)waterHoseTaken=animals.interactWithWorker()&&animals.workerHoldingHose();
-            if(time>=4.5&&time<12.3&&waterHoseTaken)
-                moveDemonstrationWorker(pointOnPath(toTrough,static_cast<float>((time-4.5)/7.8)),dt);
-            if(time>=12.5&&!waterHosePlaced&&animals.workerHoldingHose())
+            if(time>=3.5&&!waterHoseTaken&&waterValveTurned)waterHoseTaken=animals.interactWithWorker()&&animals.workerHoldingHose();
+            if(time>=3.8&&time<10.3&&waterHoseTaken)
+                moveDemonstrationWorker(pointOnPath(toTrough,static_cast<float>((time-3.8)/6.5)),dt);
+            if(time>=10.5&&!waterHosePlaced&&animals.workerHoldingHose())
                 waterHosePlaced=animals.interactWithWorker()&&animals.hosePlacedAtTrough();
-            if(time>=21.0&&!hoseRetrieved&&animals.hosePlacedAtTrough())
+            if(time>=12.8&&!firstWaterRetrieved&&animals.hosePlacedAtTrough())
+                firstWaterRetrieved=animals.interactWithWorker()&&animals.workerHoldingHose();
+            if(time>=13.0&&time<15.2&&firstWaterRetrieved)
+                moveDemonstrationWorker(pointOnPath(betweenTroughs,static_cast<float>((time-13.0)/2.2)),dt);
+            if(time>=15.4&&!secondWaterPlaced&&animals.workerHoldingHose())
+                secondWaterPlaced=animals.interactWithWorker()&&animals.hosePlacedAtTrough();
+            if(time>=17.7&&!hoseRetrieved&&secondWaterPlaced&&animals.hosePlacedAtTrough())
                 hoseRetrieved=animals.interactWithWorker()&&animals.workerHoldingHose();
-            if(time>=21.3&&time<26.9&&hoseRetrieved)
-                moveDemonstrationWorker(pointOnPath(backToTap,static_cast<float>((time-21.3)/5.6)),dt);
-            if(time>=27.0&&!hoseReturned&&animals.workerHoldingHose())
+            if(time>=18.0&&time<22.7&&hoseRetrieved)
+                moveDemonstrationWorker(pointOnPath(backToTap,static_cast<float>((time-18.0)/4.7)),dt);
+            if(time>=22.8&&!hoseReturned&&animals.workerHoldingHose())
                 hoseReturned=animals.interactWithWorker()&&!animals.workerHoldingHose();
-            if(time>=27.2&&animals.waterValveOpen())animals.toggleWaterValve();
+            if(time>=23.0&&animals.waterValveOpen())animals.toggleWaterValve();
         }
-        if(chapter==8)
+        if(chapter==9)
         {
             const array<glm::vec3,7> toHome={{homeStart,{7.0f,0,4.8f},{7.6f,0,5.0f},
                 {6.5f,0,7.2f},{6.0f,0,9.6f},{8.0f,0,10.35f},{8.0f,.22f,12.70f}}};
             if(time>=.3&&time<8.8)moveDemonstrationWorker(pointOnPath(toHome,static_cast<float>((time-.3)/8.5)),dt);
             if(time>=9.0&&!workerSentHome){animals.sendWorkerHome();workerSentHome=true;}
         }
+        if(chapter==10)
+        {
+            lighting.setDuskProgress(eased(static_cast<float>(time/DuskTransitionEnd)));
+            if(time>=DuskTransitionEnd&&!lighting.nightMode())
+            {
+                lighting.toggleDayNight();
+                animals.setNightMode(true);
+            }
+        }
+        if(chapter==10&&time>=RainInspectionStart)
+        {
+            if(!inspectionStarted)
+            {
+                inspectionHome=animals.workers()[0].position;
+                animals.beginRainInspection();inspectionStarted=true;
+            }
+            const array<glm::vec3,4> inspection={{inspectionHome,{8.0f,0,10.10f},
+                {4.6f,0,9.8f},{4.6f,0,7.2f}}};
+            if(time<RainInspectionArrive)moveDemonstrationWorker(pointOnPath(inspection,
+                static_cast<float>((time-RainInspectionStart)/(RainInspectionArrive-RainInspectionStart))),dt);
+            animals.setWorkerUmbrella(animals.workers()[0].position.x<5.6f&&animals.workers()[0].position.z<9.6f);
+            umbrellaShown|=animals.workers()[0].holdingUmbrella;
+            if(time>=RainInspectionArrive)animals.turnManualWorker(135.0f-animals.workers()[0].yaw);
+        }
+        if(chapter==11)
+        {
+            const array<glm::vec3,5> inspectionReturn={{homeStart,{4.6f,0,9.8f},{8.0f,0,9.8f},
+                {8.0f,0,10.35f},{8.0f,.22f,12.7f}}};
+            if(time<7.0)moveDemonstrationWorker(pointOnPath(inspectionReturn,static_cast<float>(time/7.0)),dt);
+            if(time>=7.1&&!workerSentHome){animals.sendWorkerHome();workerSentHome=true;}
+            const int requestedStage=time<8.0?0:(time<13.0?1:2);
+            if(lightStage!=requestedStage)configureNightLights(requestedStage);
+            completedLightShow|=requestedStage==2;
+        }
         animals.update(dt);
         lighting.update(dt);
-        gate = approach(gate, chapter >= 1 && chapter < 8 ? 90.0f : 0.0f, 60.0f*dt);
+        gate = approach(gate, chapter >= 1 && chapter < 9 ? 90.0f : 0.0f, 60.0f*dt);
         stall = approach(stall, 0.0f, 60.0f*dt);
         calfDoor = approach(calfDoor, animals.calfShedDoorNeeded() ? 92.0f : 0.0f, 180.0f*dt);
         const Worker& worker = animals.workers()[0];
         sawPickup |= worker.state == WorkerState::PickingUpHay;
         sawCarry |= worker.carryingHay;
         sawFeed |= worker.state == WorkerState::Feeding;
-        workerReturned |= chapter>=8&&worker.deliveredLoads>=2&&worker.state==WorkerState::HomeIdle;
-        sawWaterFill |= animals.waterTroughFill()>.55f;
-        if(chapter>=6&&calvesRecalled&&poultryRecalled)
+        workerReturned |= chapter>=9&&worker.deliveredLoads>=2&&worker.state==WorkerState::HomeIdle;
+        sawWaterFill |= animals.waterTroughFill(0)>.99f&&animals.waterTroughFill(1)>.99f;
+        if(chapter>=7&&calvesRecalled&&poultryRecalled)
         {
             const bool calvesHome=all_of(animals.calves().begin(),animals.calves().end(),
                 [](const Calf& calf){return calf.routeState==Calf::RouteState::Sheltered;});
@@ -282,16 +364,17 @@ public:
         {
         case 0:
         {
-            const float angle=.20f+u*1.35f;
-            return {{sin(angle)*30.0f,22.5f,cos(angle)*30.0f},{0,0,-1.5f},54};
+            // Oblique three-quarter aerial, matching the reference footage.
+            return mixPose({{28.0f,23.0f,33.0f},{0,0,-1.5f},53},
+                           {{21.0f,21.0f,32.0f},{0,0,-1.5f},53},u);
         }
         case 1:
-            if(time<2.4)return mixPose({{-7.5f,5.8f,25.5f},{0,4.7f,15.5f},38},
-                                       {{0,5.0f,24.0f},{0,4.7f,15.5f},34},static_cast<float>(time/2.4));
-            if(time<4.0)return mixPose({{0,4.7f,24.0f},{0,2.4f,15.5f},42},
-                                       {{0,3.7f,19.8f},{0,1.8f,14.0f},45},static_cast<float>((time-2.4)/1.6));
+            if(time<2.4)return mixPose({{-11.5f,4.6f,22.0f},{-10,3.5f,11.6f},43},
+                                       {{-7.5f,4.0f,19.7f},{-10,3.5f,11.6f},41},static_cast<float>(time/2.4));
+            if(time<4.4)return mixPose({{0,4.8f,24.0f},{0,4.7f,15.5f},38},
+                                       {{0,3.7f,19.8f},{0,2.4f,15.5f},45},static_cast<float>((time-2.4)/2.0));
             return mixPose({{0,3.7f,19.8f},{0,1.8f,13.5f},45},
-                           {{0,3.2f,8.0f},{0,1.2f,-1.0f},49},static_cast<float>((time-4.0)/4.0));
+                           {{0,3.2f,8.0f},{0,1.2f,-1.0f},49},static_cast<float>((time-4.4)/5.6));
         case 2:
         {
             const Worker& worker=animals.workers()[0];
@@ -303,83 +386,109 @@ public:
         case 3:
         {
             const Worker& worker=animals.workers()[0];
-            if(time<6.2)return {{4.3f,4.1f,10.7f},{9.4f,.7f,6.0f},47};
+            if(time<6.2)
+            {
+                // Travel beside the farmer, then ease into the clear frontal
+                // gate view as he arrives. This avoids the tank and tree line.
+                const float arrival=glm::smoothstep(3.0f,5.2f,static_cast<float>(time));
+                return {glm::mix(worker.position+glm::vec3(4.6f,3.4f,.8f),glm::vec3(6.0f,3.1f,1.2f),arrival),
+                        glm::mix(worker.position+glm::vec3(0,1.1f,0),glm::vec3(10.3f,.65f,6.2f),arrival),52};
+            }
             if(time<10.8)return {{3.0f,5.0f,-1.0f},worker.position+glm::vec3(0,1,0),50};
             if(time<14.2)return {{11.0f,2.8f,-5.4f},worker.position+glm::vec3(0,1.0f,0),44};
             if(time<22.2)return {{2.7f,5.3f,1.2f},worker.position+glm::vec3(0,1.0f,0),50};
-            return {{2.2f,3.3f,10.0f},FarmInteraction::PoultryFeedPosition+glm::vec3(0,.55f,0),44};
+            if(time<23.4)return {{2.2f,3.3f,10.0f},FarmInteraction::PoultryFeedPosition+glm::vec3(0,.55f,0),44};
+            return {{2.7f,5.3f,1.2f},worker.position+glm::vec3(0,1,0),50};
         }
         case 4:
         {
             const Worker& worker=animals.workers()[0];
-            if(time<6.5)return {{3.0f,5.2f,1.0f},worker.position+glm::vec3(0,1,0),50};
-            if(time<10.0)return {{11.0f,2.8f,-5.4f},worker.position+glm::vec3(0,1,0),44};
-            if(time<18.2)return {{0.3f,5.3f,-3.2f},worker.position+glm::vec3(0,1,0),48};
+            if(time<3.5)return {{3.0f,5.2f,1.0f},worker.position+glm::vec3(0,1,0),50};
+            if(time<7.2)return {{11.0f,2.8f,-5.4f},worker.position+glm::vec3(0,1,0),44};
+            if(time<16.8)return {{0.3f,5.3f,-3.2f},worker.position+glm::vec3(0,1,0),48};
             const glm::vec3 calves=(animals.calves()[0].position+animals.calves()[1].position)*.5f;
             return {{-1.3f,3.6f,-13.6f},glm::mix(calves,glm::vec3(-5.6f,.8f,-9.65f),.35f),44};
         }
         case 5:
         {
             const Worker& worker=animals.workers()[0];
-            return {{3.0f,4.4f,10.0f},glm::mix(worker.position,FarmInteraction::HoeWorkPosition,.45f)+glm::vec3(0,.75f,0),46};
+            if(time<7.7)return {{.8f,4.1f,6.9f},worker.position+glm::vec3(0,1,0),47};
+            return {{-.5f,3.5f,7.3f},{-5.0f,1.1f,3.4f},43};
         }
-        case 6:
+        case 7:
         {
             const Worker& worker=animals.workers()[0];
-            if(time<7.8)return {{11.0f,2.8f,-5.4f},worker.position+glm::vec3(0,1,0),44};
+            if(time<2.0)return mixPose({{26,22,31},{0,1,-1},53},{{23,21,29},{0,1,-1},53},static_cast<float>(time/2.0));
+            if(time<9.8)return {{11.0f,2.8f,-5.4f},worker.position+glm::vec3(0,1,0),44};
             const glm::vec3 calves=(animals.calves()[0].position+animals.calves()[1].position)*.5f;
             glm::vec3 birds(0);
             int mobile=0;
             for(const Bird& bird:animals.birds())if(bird.mobile){birds+=bird.position;++mobile;}
             if(mobile>0)birds/=static_cast<float>(mobile);
-            if(time<22.5)return {{-1.2f,4.0f,-13.8f},glm::mix(worker.position,calves,.55f)+glm::vec3(0,.7f,0),45};
-            return {{4.4f,4.1f,1.7f},glm::mix(worker.position,birds,.62f)+glm::vec3(0,.55f,0),46};
-        }
-        case 7:
-        {
-            const Worker& worker=animals.workers()[0];
-            if(time<4.5)return {{11.2f,3.4f,6.2f},worker.position+glm::vec3(0,1.0f,0),47};
-            if(time<12.5)return {worker.position+glm::vec3(4.0f,3.2f,4.7f),worker.position+glm::vec3(0,1.0f,0),47};
-            if(time<21.2)return {{-3.0f,3.8f,-.8f},{-9.5f,.9f,-5.5f},44};
-            return {worker.position+glm::vec3(4.0f,3.3f,4.8f),worker.position+glm::vec3(0,1.0f,0),47};
+            if(time<24.5)return {{-1.2f,4.0f,-13.8f},glm::mix(worker.position,calves,.55f)+glm::vec3(0,.7f,0),45};
+            return {{6.0f,3.1f,1.2f},{10.3f,.65f,6.2f},52};
         }
         case 8:
+        {
+            const Worker& worker=animals.workers()[0];
+            if(time<3.8)return {{4.3f,3.6f,6.8f},glm::mix(worker.position,FarmInteraction::ValvePosition,.35f)+glm::vec3(0,.75f,0),52};
+            if(time<10.5)return {worker.position+glm::vec3(4.0f,3.2f,4.7f),worker.position+glm::vec3(0,1.0f,0),47};
+            if(time<18.0)return {{-10.0f,4.2f,0.0f},{-10.0f,1.15f,-5.75f},62};
+            return {worker.position+glm::vec3(4.0f,3.3f,4.8f),worker.position+glm::vec3(0,1.0f,0),47};
+        }
+        case 9:
         {
             const Worker& worker=animals.workers()[0];
             if(time<3.0)return {{4.2f,4.0f,9.0f},{8.5f,.8f,5.7f},46};
             return {{3.7f,3.7f,8.5f},worker.position+glm::vec3(0,1.0f,0),45};
         }
-        case 9:
-            // Stable close framing makes the normal interpolation difference
-            // readable across the three simultaneous comparison panels.
-            return {{-18.2f,4.1f,-0.8f},{-10.2f,1.85f,-7.45f},38};
+        case 6:
+            // The smoothly curved metal vessel makes specular interpolation
+            // easier to compare than the distant animal silhouettes.
+            return {{5.2f,3.0f,3.0f},{8.3f,1.20f,-1.0f},38};
         case 10:
-            return mixPose({{-8.0f,7.2f,31.5f},{0,1.5f,2.0f},55},
-                           {{7.0f,6.5f,29.0f},{0,1.3f,0.0f},53},u);
+            if(time<DuskTransitionEnd)return mixPose({{28,21,32},{0,1,-1},52},{{18,19,31},{0,1,-1},52},static_cast<float>(time/DuskTransitionEnd));
+            if(time<13.0)return mixPose({{-25,18,24},{0,1,-1},52},{{-19,17,26},{0,1,-1},52},static_cast<float>((time-DuskTransitionEnd)/5.0));
+            if(time<NightRainStart)return mixPose({{16,15,28},{0,1,-1},52},{{8,14,27},{0,1,-1},52},static_cast<float>((time-13.0)/5.0));
+            if(time<RainInspectionStart)return mixPose({{-1.3f,2.1f,28.0f},{0,2.0f,15.5f},51},
+                                                       {{1.4f,1.8f,23.5f},{0,2.3f,15.5f},49},
+                                                       static_cast<float>((time-NightRainStart)/(RainInspectionStart-NightRainStart)));
+            if(time<32.0)
+            {
+                const Worker& worker=animals.workers()[0];
+                return {{1.0f,3.0f,8.0f},worker.position+glm::vec3(0,1.4f,0),54};
+            }
+            return mixPose({{.7f,2.5f,13.0f},{4.6f,1.8f,7.2f},54},
+                           {{-.7f,2.7f,11.0f},{4.6f,1.8f,7.2f},54},static_cast<float>((time-32.0)/8.0));
         default:
-            return mixPose({{-16.0f,8.5f,27.0f},{0,1.8f,8.0f},49},
-                           {{12.0f,8.0f,27.0f},{0,1.8f,8.0f},49},u);
+            if(time<8.0)return mixPose({{-18,18,28},{0,1,-1},52},{{-10,17,28},{0,1,-1},52},static_cast<float>(time/8.0));
+            if(time<13.0)return {{-1.0f,4.0f,-.8f},{-10,1.8f,-8},49};
+            if(time<17.0)return {{0,5.3f,24},{0,4.7f,15.5f},43};
+            return mixPose({{18,19,29},{0,1,-1},52},{{23,20,29},{0,1,-1},52},static_cast<float>((time-17.0)/3.0));
         }
     }
-    bool rainActive() const { return chapter==10&&time>=1.6; }
+    bool rainActive() const { return chapter==10&&time>=NightRainStart; }
     int cameraShot() const
     {
-        if(chapter==1)return static_cast<int>(chapter)*10+(time<2.4?0:(time<4.0?1:2));
+        if(chapter==1)return static_cast<int>(chapter)*10+(time<2.4?0:(time<4.4?1:2));
         if(chapter==2)return 20+(time<7.2?0:(time<14.0?1:(time<20.7?2:3)));
-        if(chapter==3)return 30+(time<6.2?0:(time<10.8?1:(time<14.2?2:(time<22.2?3:4))));
-        if(chapter==4)return 40+(time<6.5?0:(time<10.0?1:(time<18.2?2:3)));
-        if(chapter==6)return 60+(time<7.8?0:(time<22.5?1:2));
-        if(chapter==7)return 70+(time<4.5?0:(time<12.5?1:(time<21.2?2:3)));
-        if(chapter==8)return 80+(time<3.0?0:1);
+        if(chapter==3)return 30+(time<6.2?0:(time<10.8?1:(time<14.2?2:(time<22.2?3:(time<23.4?4:5)))));
+        if(chapter==4)return 40+(time<3.5?0:(time<7.2?1:(time<16.8?2:3)));
+        if(chapter==7)return 70+(time<2.0?0:(time<9.8?1:(time<24.5?2:3)));
+        if(chapter==8)return 80+(time<3.8?0:(time<10.5?1:(time<18.0?2:3)));
+        if(chapter==9)return 90+(time<3.0?0:1);
+        if(chapter==5)return 50+(time<7.7?0:1);
+        if(chapter==10)return 100+(time<DuskTransitionEnd?0:(time<13.0?1:(time<NightRainStart?2:(time<RainInspectionStart?3:(time<32.0?4:5)))));
+        if(chapter==11)return 110+(time<8.0?0:(time<13.0?1:(time<17.0?2:3)));
         return static_cast<int>(chapter)*10;
     }
 private:
-    void configureNightLights(bool allOn)
+    void configureNightLights(int stage)
     {
-        lightStage=allOn?0:1;
-        const bool shed=allOn;
+        lightStage=stage;
+        const bool shed=stage==0;
         const bool fence=true;
-        const bool banner=allOn; // entrance nameplate
+        const bool banner=stage<2; // entrance nameplate
         const bool billboard=true;
         const bool spot=true;
         const bool directional=true;
@@ -394,7 +503,32 @@ private:
     void moveDemonstrationWorker(const glm::vec3& next,float dt)
     {
         const Worker& worker=animals.workers()[0];
-        const glm::vec2 difference(next.x-worker.position.x,next.z-worker.position.z);
+        glm::vec3 clearNext=next;
+        // Keep a body-sized clearance around roaming calves. The farmer
+        // bends his route around them instead of walking through a paused calf.
+        for(const Calf& calf:animals.calves())
+        {
+            glm::vec2 away(clearNext.x-calf.position.x,clearNext.z-calf.position.z);
+            const float distance=glm::length(away);
+            if(distance<1.08f)
+            {
+                if(distance<.001f)away=glm::vec2(0,1);else away/=distance;
+                clearNext.x=calf.position.x+away.x*1.08f;
+                clearNext.z=calf.position.z+away.y*1.08f;
+            }
+        }
+        for(const Bird& bird:animals.birds())if(bird.mobile)
+        {
+            glm::vec2 away(clearNext.x-bird.position.x,clearNext.z-bird.position.z);
+            const float distance=glm::length(away);
+            if(distance<.75f)
+            {
+                if(distance<.001f)away=glm::vec2(-1,0);else away/=distance;
+                clearNext.x=bird.position.x+away.x*.75f;
+                clearNext.z=bird.position.z+away.y*.75f;
+            }
+        }
+        const glm::vec2 difference(clearNext.x-worker.position.x,clearNext.z-worker.position.z);
         if(glm::length(difference)>.0001f)
         {
             const float target=glm::degrees(atan2(-difference.y,difference.x));
@@ -402,7 +536,7 @@ private:
             if(turn>180)turn-=360;if(turn<-180)turn+=360;
             animals.turnManualWorker(turn);
         }
-        animals.moveManualWorker(next,dt);
+        animals.moveManualWorker(clearNext,dt);
     }
 };
 
@@ -528,7 +662,8 @@ public:
         }
         rectangle(margin,margin,panelWidth,100*s,panel);
         rectangle(margin,margin,4*s,100*s,gold);
-        text("AMS AGRO FARM / GUIDED SIMULATION",margin+16*s,margin+12*s,1.5f*s,muted);
+        text(string("AMS AGRO FARM")+
+             (controls.paused?" / PAUSED":""),margin+16*s,margin+12*s,1.5f*s,muted);
         text(to_string(tour.chapter+1)+"/"+to_string(Chapters.size())+"  "+Chapters[tour.chapter].name,margin+16*s,margin+36*s,2.1f*s,white);
         text(Chapters[tour.chapter].caption,margin+16*s,margin+72*s,1.25f*s,gold);
 
@@ -537,19 +672,25 @@ public:
         rectangle(technicalX,margin,technicalWidth,100*s,glm::vec4(.018f,.055f,.048f,.95f));
         rectangle(technicalX,margin,3*s,100*s,muted);
         const string timeName=tour.lighting.nightMode()?"NIGHT 22:00":
-            (tour.lighting.afternoonMode()?"AFTERNOON 16:30":"MORNING 10:30");
+            (tour.chapter==10?"DUSK 18:30":(tour.chapter==6?"DAYLIGHT 12:30":
+             (tour.lighting.afternoonMode()?"AFTERNOON 16:30":"MORNING 10:30")));
         string renderName="PHONG / TEXTURED";
-        if(tour.chapter==9)renderName="FLAT / GOURAUD / PHONG";
-        if(tour.rainActive())renderName="RASTER + RAY TRACING";
-        string cameraName=tour.chapter==0?"AERIAL ORBIT":(tour.chapter==1?"BANNER / GATE DOLLY":
-            (tour.chapter==9?"THREE PANEL":(tour.rainActive()?"WET ANALYSIS":"CINEMATIC FOLLOW")));
+        if(tour.chapter==6)renderName="FLAT / GOURAUD / PHONG";
+        if(tour.rainActive())renderName="RAY TRACED ROAD";
+        string cameraName=tour.chapter==0?"MORNING AERIAL":(tour.chapter==1?"BANNER / GATE DOLLY":
+            (tour.chapter==6?"THREE PANEL":(tour.rainActive()?"WET ANALYSIS":"CINEMATIC FOLLOW")));
+        if(tour.chapter==7&&tour.time<2.0)cameraName="EVENING AERIAL";
+        if(tour.chapter==10&&tour.time<NightRainStart)cameraName="ALL LIGHTS AERIAL";
+        if(tour.chapter==10&&tour.time<DuskTransitionEnd)cameraName="AFTERNOON TO NIGHT AERIAL";
+        if(tour.chapter==10&&tour.time>=RainInspectionStart)cameraName="UMBRELLA INSPECTION";
+        if(tour.chapter==3&&tour.time<5.2)cameraName="FARMER TO POULTRY GATE";
         text("TIME  "+timeName,technicalX+13*s,margin+10*s,1.05f*s,white);
         if(tour.rainActive())
         {
-            text("PIPELINE  ANALYTIC GPU RAYS",technicalX+13*s,margin+29*s,.92f*s,gold);
-            text("SHADOWS  HARD OCCLUSION",technicalX+13*s,margin+48*s,.92f*s,white);
-            text("BOUNCES  1 REFLECTION",technicalX+13*s,margin+67*s,.92f*s,white);
-            text("WET SURFACE  100 PERCENT",technicalX+13*s,margin+86*s,.82f*s,muted);
+            text("PIPELINE  HYBRID SCREEN RAYS",technicalX+13*s,margin+29*s,.92f*s,gold);
+            text("REFLECTION  ON / 48 RAY STEPS",technicalX+13*s,margin+48*s,.92f*s,white);
+            text("COLOUR  ORIGINAL FARM LIGHTS",technicalX+13*s,margin+67*s,.92f*s,white);
+            text("FALLBACK  TEXTURED SCENE CAPTURE",technicalX+13*s,margin+86*s,.82f*s,muted);
         }
         else
         {
@@ -559,7 +700,7 @@ public:
             text("TRANSFORMS  MODEL VIEW PROJECTION",technicalX+13*s,margin+86*s,.78f*s,muted);
         }
 
-        if(tour.chapter==9)
+        if(tour.chapter==6)
         {
             const float third=static_cast<float>(width)/3.0f;
             for(int index=0;index<3;++index)
@@ -572,37 +713,9 @@ public:
         }
         if(tour.rainActive())
         {
-            const float half=static_cast<float>(width)*.5f;
-            rectangle(half-1.5f*s,margin+108*s,3*s,height-2*margin-195*s,
-                      glm::vec4(.96f,.76f,.30f,.68f));
-            rectangle(half*.5f-92*s,margin+112*s,184*s,25*s,panel);
-            text("PHONG RASTER FARM",half*.5f-77*s,margin+119*s,1.05f*s,white);
-            rectangle(half+half*.5f-106*s,margin+112*s,212*s,25*s,panel);
-            text("RAY TRACED WET VIEW",half+half*.5f-91*s,margin+119*s,1.05f*s,gold);
+            rectangle(margin,margin+112*s,268*s,25*s,panel);
+            text("WET ROAD / RAY TRACED REFLECTIONS",margin+12*s,margin+119*s,1.12f*s,gold);
         }
-        const float bottom=height-margin-49*s;
-        rectangle(margin,bottom,panelWidth,49*s,panel);
-        string status="LIVE FARM / "+to_string(static_cast<int>(tour.elapsed))+" OF "+to_string(static_cast<int>(totalSeconds()))+" SECONDS";
-        if(tour.chapter==2)status=string("HAY DELIVERIES  ")+to_string(tour.animals.deliveredHayLoads())+" / 2   "+tour.animals.workerStatus();
-        if(tour.chapter==3)status=tour.poultryFed?"POULTRY RELEASED AND FED / GRAIN IS BEING CONSUMED":"COOP GATE OPEN / FARMER COLLECTING THE FEED BOX";
-        if(tour.chapter==4)status=tour.calvesReleased?string("FARMER CLEAR OF DOORWAY / ")+tour.animals.calfStatus():"HOE COLLECTED / WALKING TO THE CALF SIDE GATE";
-        if(tour.chapter==5)status=string("VISIBLE FARM WORK / ")+tour.animals.workerStatus();
-        if(tour.chapter==6){
-            if(!tour.calvesRecalled)status="FARMER WALKING TO BRING THE CALVES HOME";
-            else if(!tour.poultryRecalled)status="CALVES RETURNING / FARMER WALKING TO THE POULTRY";
-            else if(!tour.animalsReturned)status="FARMER GUIDING THE HENS AND DUCKS INTO THEIR COOP";
-            else status="ALL CALVES HENS AND DUCKS SAFELY INSIDE / NO GRAIN REMAINS";
-        }
-        if(tour.chapter==7)status=tour.hoseReturned?"CATTLE WATERED / HOSE RETURNED / VALVE CLOSED":string("WATER  ")+tour.animals.waterStatus()+" / TROUGH "+to_string(static_cast<int>(tour.animals.waterTroughFill()*100))+" PERCENT";
-        if(tour.chapter==8)status=tour.workerReturned?"ALL GATES SECURED / FARMER SAFELY INSIDE":"SECURING THE COOP AND MAIN GATE / RETURNING HOME";
-        if(tour.chapter==9)status="ONE CAMERA / ONE MODEL / THREE DIFFERENT NORMAL INTERPOLATION METHODS";
-        if(tour.chapter==10)status=tour.rainActive()?"RAY ANALYSIS / HARD SHADOWS / WET REFLECTION / ONE SECONDARY BOUNCE":"NIGHT BEGINS / ALL FARM LIGHTS ON";
-        if(tour.chapter==11)status="RAIN CLEARED / COW SHED AND NAMEPLATE OFF / FENCE GATE BILLBOARD AND SPOTLIGHT ON";
-        if(tour.complete) status="TOUR COMPLETE / LIVE ANIMATIONS CONTINUE / R TO REPLAY";
-        if(controls.paused) status="PAUSED / SPACE TO CONTINUE";
-        text(status,margin+16*s,bottom+12*s,1.35f*s,white);
-        rectangle(margin+16*s,bottom+38*s,panelWidth-32*s,3*s,glm::vec4(.18f,.27f,.22f,1));
-        rectangle(margin+16*s,bottom+38*s,(panelWidth-32*s)*static_cast<float>(tour.elapsed/totalSeconds()),3*s,gold);
         shader_.use();shader_.setVec2("resolution",glm::vec2(width,height));
         glDisable(GL_DEPTH_TEST);glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
         glBindVertexArray(vao_);glBindBuffer(GL_ARRAY_BUFFER,vbo_);
@@ -615,7 +728,7 @@ public:
 void rasterView(const Shader& shader,const Tour& tour,const FarmScene& farm,const EntityRenderer& entities,
                 const CurvedRenderer& curves,const FarmTextures& textures,const Pose& pose,
                 int x,int y,int width,int height,bool orthographic=false,float halfHeight=19.5f,
-                glm::vec3 up=glm::vec3(0,1,0),bool flatShading=false)
+                glm::vec3 up=glm::vec3(0,1,0),bool flatShading=false,bool reflectionCapture=false)
 {
     if(width<=0||height<=0)return;
     const float aspect=static_cast<float>(width)/height;
@@ -626,26 +739,29 @@ void rasterView(const Shader& shader,const Tour& tour,const FarmScene& farm,cons
         :glm::perspective(glm::radians(pose.fov),aspect,.1f,TerrainRenderer::FarPlane));
     tour.lighting.setupShader(shader,pose.eye);
     shader.setBool("flatShading",flatShading);
+    shader.setBool("reflectionCapture",reflectionCapture);
     const Worker& worker=tour.animals.workers()[0];
     farm.render(shader,tour.gate,tour.stall,tour.calfDoor,tour.animals.poultryDoorAngle(),
                 tour.animals.fanAngle(),tour.lighting,
                 tour.animals.workerDoorAngle(),tour.animals.hayAvailableMask(),
-                tour.animals.deliveredHayLoads(),tour.animals.waterValveOpen(),
+                tour.animals.visibleCowHayLoads(),tour.animals.waterValveOpen(),
                 tour.animals.waterValveAngle(),tour.animals.workerHoldingHose(),
                 tour.animals.hosePlacedAtTrough(),tour.animals.hoseEndPosition(),
-                tour.animals.waterTroughFill(),tour.animals.feedBagAvailable(),
-                tour.animals.hoeAvailable());
+                tour.animals.waterTroughFill(0),tour.animals.feedBagAvailable(),
+                tour.animals.hoeAvailable(),tour.animals.waterTroughFill(1),
+                tour.animals.hayWorkProgress());
     entities.render(shader,tour.animals);curves.render(shader,textures);
 }
 
 void render(const Tour& tour,const Pose& pose,int width,int height,const Shader& phong,const Shader& gouraud,
-            const Shader& ray,const FarmScene& farm,const EntityRenderer& entities,const CurvedRenderer& curves,
-            const RayTraceRenderer& tracer,const FarmTextures& textures,Overlay& overlay,const Controls& controls)
+            const FarmScene& farm,const EntityRenderer& entities,const CurvedRenderer& curves,
+            const FarmTextures& textures,Overlay& overlay,const Controls& controls,
+            WetReflectionRenderer& wet)
 {
     if(width<=0||height<=0)return;
     const glm::vec3 sky=tour.lighting.clearColor();glClearColor(sky.r,sky.g,sky.b,1);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    if(tour.chapter==9)
+    if(tour.chapter==6)
     {
         const int first=width/3,second=width/3,third=width-first-second;
         rasterView(phong,tour,farm,entities,curves,textures,pose,0,0,first,height,
@@ -655,26 +771,26 @@ void render(const Tour& tour,const Pose& pose,int width,int height,const Shader&
     }
     else if(tour.rainActive())
     {
-        // Keep the detailed raster farm visible while the analytic renderer
-        // demonstrates hard shadow rays and a reflected wet surface beside it.
-        // This comparison is easier to explain than replacing the whole farm
-        // with the intentionally compact ray-traced geometry.
-        const int rasterWidth=width/2;
-        const int rayWidth=width-rasterWidth;
-        rasterView(phong,tour,farm,entities,curves,textures,pose,0,0,rasterWidth,height);
-        const float aspect=static_cast<float>(rayWidth)/height;
+        // Preserve the real farm textures/materials and practical lights.
+        // Reflections trace depth-buffer rays with a full-scene planar fallback.
+        wet.resize(width,height);
+        const float aspect=static_cast<float>(width)/height;
         const glm::mat4 view=glm::lookAt(pose.eye,pose.target,glm::vec3(0,1,0));
         const glm::mat4 projection=glm::perspective(glm::radians(pose.fov),aspect,.1f,TerrainRenderer::FarPlane);
-        glViewport(rasterWidth,0,rayWidth,height);glDisable(GL_DEPTH_TEST);ray.use();
-        tour.lighting.setupShader(ray,pose.eye);
-        ray.setBool("nightMode",true);
-        ray.setBool("workerVisible",false);
-        ray.setBool("workerCarryingHay",false);
-        ray.setVec3("workerPosition",tour.animals.workers()[0].position);
-        ray.setFloat("workerFeedProgress",0.0f);
-        ray.setInt("deliveredHayLoads",tour.animals.deliveredHayLoads());
-        ray.setFloat("weatherWetness",1.0f);
-        tracer.render(ray,view,projection);glEnable(GL_DEPTH_TEST);
+        Pose reflected=pose;
+        constexpr float roadPlane=.04f;
+        reflected.eye.y=2*roadPlane-pose.eye.y;
+        reflected.target.y=2*roadPlane-pose.target.y;
+        const glm::mat4 reflectedView=glm::lookAt(reflected.eye,reflected.target,glm::vec3(0,-1,0));
+        glBindFramebuffer(GL_FRAMEBUFFER,wet.reflectionFramebuffer());
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        rasterView(phong,tour,farm,entities,curves,textures,reflected,0,0,width,height,
+                   false,19.5f,glm::vec3(0,-1,0),false,true);
+        glBindFramebuffer(GL_FRAMEBUFFER,wet.sceneFramebuffer());
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        rasterView(phong,tour,farm,entities,curves,textures,pose,0,0,width,height);
+        wet.compose(view,projection,reflectedView,pose.eye,static_cast<float>(tour.elapsed),
+                    eased(static_cast<float>(tour.time-NightRainStart)));
     }
     else
         rasterView(phong,tour,farm,entities,curves,textures,pose,0,0,width,height);
@@ -697,10 +813,10 @@ int runSimulation(bool smokeTest)
     int result=0;
     try
     {
-        Shader phong("shaders/texture.vs","shaders/texture.fs"),gouraud("shaders/gouraud.vs","shaders/gouraud.fs"),
-               ray("shaders/raytrace.vs","shaders/raytrace.fs");
+        Shader phong("shaders/texture.vs","shaders/texture.fs"),gouraud("shaders/gouraud.vs","shaders/gouraud.fs");
         TextureManager textures;CubeRenderer cubes;PrimitiveRenderer primitives;CurvedRenderer curves;
-        RayTraceRenderer tracer;FarmScene farm(cubes,primitives,textures.farm());EntityRenderer entities(cubes,primitives);
+        FarmScene farm(cubes,primitives,textures.farm());EntityRenderer entities(cubes,primitives);
+        WetReflectionRenderer wet;
         Overlay overlay;Tour tour;Controls controls;
         glfwSetWindowUserPointer(window,&controls);glfwSetKeyCallback(window,keyCallback);
         glEnable(GL_DEPTH_TEST);
@@ -749,7 +865,7 @@ int runSimulation(bool smokeTest)
             if(!smokeTest||renderedChapter!=tour.chapter||halfway||renderedWorker!=state||tour.complete)
             {
                 int width,height;glfwGetFramebufferSize(window,&width,&height);
-                render(tour,smoothed,width,height,phong,gouraud,ray,farm,entities,curves,tracer,textures.farm(),overlay,controls);
+                render(tour,smoothed,width,height,phong,gouraud,farm,entities,curves,textures.farm(),overlay,controls,wet);
                 if(smokeTest)
                 {
                     glFinish();if(glGetError()!=GL_NO_ERROR)throw runtime_error("Guided simulation OpenGL error.");
@@ -764,14 +880,28 @@ int runSimulation(bool smokeTest)
                    !tour.sawPickup||!tour.sawCarry||!tour.sawFeed||
                    !tour.waterValveTurned||!tour.waterHoseTaken||!tour.waterHosePlaced||
                    !tour.sawWaterFill||!tour.hoseRetrieved||!tour.hoseReturned||
-                   !tour.poultryReleased||!tour.feedBagTaken||!tour.poultryFed||
+                   !tour.firstWaterRetrieved||!tour.secondWaterPlaced||
+                   tour.animals.hayWorkProgress()<.99f||tour.animals.visibleCowHayLoads()!=0||
+                   !tour.poultryReleased||!tour.feedBagTaken||!tour.poultryFed||!tour.feedBoxReturned||
                    tour.animals.deliveredHayLoads()!=2||!tour.calvesReleased||
                    !tour.hoeTaken||!tour.hoeWorkStarted||!tour.hoeReturned||
                    !tour.calvesRecalled||!tour.poultryRecalled||!tour.animalsReturned||
                    !tour.waterBeganAfterAnimalsReturned||!tour.feedGoneBeforeReturn||
-                   !tour.workerReturned||!tour.completedLightShow)
-                    throw runtime_error("200-second simulation missed a required workday or graphics-showcase action.");
-                cout<<"Simulation test passed: exactly 200 seconds - sheltered poultry start, water and hose return, "
+                   !tour.workerReturned||!tour.completedLightShow||!tour.umbrellaShown||
+                   tour.animals.workers()[0].state!=WorkerState::HomeIdle)
+                {
+                    cerr<<"Verification: hay="<<tour.animals.deliveredHayLoads()
+                        <<" water="<<tour.animals.waterTroughFill(0)<<','<<tour.animals.waterTroughFill(1)
+                        <<" water-after-home="<<tour.waterBeganAfterAnimalsReturned
+                        <<" animals-home="<<tour.animalsReturned
+                        <<" hoe="<<tour.hoeTaken<<tour.hoeWorkStarted<<tour.hoeReturned
+                        <<" hay-work="<<tour.animals.hayWorkProgress()
+                        <<" poultry="<<tour.poultryReleased<<tour.feedBagTaken<<tour.poultryFed
+                        <<" feed-gone="<<tour.feedGoneBeforeReturn
+                        <<" farmer-home="<<tour.workerReturned<<'\n';
+                    throw runtime_error("240-second simulation missed a required workday or graphics-showcase action.");
+                }
+                cout<<"Simulation test passed: exactly 240 seconds - sheltered poultry start, water and hose return, "
                        "feed collection, two hay loads, calf release, hoe work, all returns, three shading modes, "
                        "night lighting and the ray-traced rain finale.\n";
                 glfwSetWindowShouldClose(window,true);

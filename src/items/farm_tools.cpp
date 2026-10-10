@@ -35,9 +35,10 @@ void FarmScene::drawFarmTools(const Shader& shader, bool feedBagAvailable,
         cubes_.drawColored(shader,hoe,glm::vec3(0,0.10f,0),glm::vec3(0.62f,0.16f,0.28f),glm::vec3(0.30f,0.32f,0.33f),-12.0f,glm::vec3(0,0,1));
     }
 
-    // One working feed sack is stored inside; it is removed when carried.
+    // The wooden feed box disappears while carried and is restored after the
+    // farmer brings the empty container back through the instrument doorway.
     if(feedBagAvailable)
-        drawFeedSack(shader,glm::vec3(11.35f,.55f,-12.25f),0.0f);
+        drawCrate(shader,glm::vec3(11.35f,.55f,-12.25f),0.0f);
 
     // Rake and pitchfork give the tool rack a recognisable farm silhouette.
     for(float x:{10.75f,11.80f})

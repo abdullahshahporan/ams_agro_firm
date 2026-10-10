@@ -25,7 +25,7 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
     const float cycle = sin((worker.animationTime + worker.phase) * 6.0f);
     const float legSwing = cycle * 31.0f * worker.gaitBlend;
     const float workSwing = walking ? -legSwing
-                                    : (digging ? 48.0f+cycle*58.0f
+                                    : (digging ? 120.0f+cycle*15.0f
                                        : (scattering ? 38.0f+cycle*52.0f
                                        : ((feeding || lifting) ? 30.0f + cycle * 33.0f : 0.0f)));
     glm::mat4 root = makeRoot(worker.position, worker.yaw, 1.0f);
@@ -73,7 +73,11 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
         drawHumanLimb(shader, hip, 0.45f, 0.45f, -side * legSwing * 0.25f,
                       trousers, trousers * 0.78f, 0.18f);
 
-        const float armAngle = worker.carryingHay && !feeding
+        const float armAngle = digging
+            ?140.0f-50.0f*(1.0f-worker.diggingTimer/4.5f)+cycle*5.0f
+            :worker.holdingUmbrella&&side>0.0f?80.0f
+            :worker.holdingFeedBag&&side<0.0f?65.0f
+            :worker.carryingHay && !feeding
             ? side * 135.0f
             : (worker.holdingHose && side>0.0f ? 55.0f
                : ((side > 0.0f) ? workSwing
@@ -94,7 +98,7 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
                 glm::smoothstep(0.0f,1.0f,min(worker.taskTimer / 0.85f,1.0f)));
         if (feeding)
             bundlePosition = glm::mix(bundlePosition,
-                                      glm::vec3(-12.0f, 0.72f, -5.45f),
+                                      glm::vec3(worker.deliveredLoads%2==0?-12.0f:-8.0f, 0.72f, -5.45f),
                                       glm::smoothstep(0.0f,1.0f,min(worker.taskTimer / 1.35f, 1.0f)));
         applyMaterial(shader, Materials::hay());
         cubes_.drawColored(shader, bundlePosition,
@@ -108,20 +112,39 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
 
     if(worker.holdingFeedBag)
     {
-        applyMaterial(shader,Materials::hay());
-        cubes_.drawColored(shader,root,glm::vec3(.42f,1.18f,.42f),
-                           glm::vec3(.58f,.76f,.42f),glm::vec3(.92f,.80f,.52f),-12.0f,glm::vec3(0,0,1));
-        cubes_.drawColored(shader,root,glm::vec3(.43f,1.18f,.64f),
-                           glm::vec3(.42f,.08f,.035f),glm::vec3(.38f,.22f,.08f));
+        applyMaterial(shader,Materials::wood());
+        const glm::vec3 centre(.42f,1.10f,-.50f),wood(.57f,.34f,.13f);
+        cubes_.drawColored(shader,root,centre+glm::vec3(0,-.23f,0),glm::vec3(.62f,.07f,.46f),wood);
+        for(float side:{-1.0f,1.0f})
+        {
+            cubes_.drawColored(shader,root,centre+glm::vec3(side*.28f,0,0),glm::vec3(.07f,.50f,.46f),wood);
+            cubes_.drawColored(shader,root,centre+glm::vec3(0,0,side*.20f),glm::vec3(.62f,.50f,.07f),wood);
+        }
+        if(!worker.feedBoxEmpty)
+            cubes_.drawColored(shader,root,centre+glm::vec3(0,.14f,0),glm::vec3(.49f,.08f,.32f),glm::vec3(.88f,.67f,.22f));
     }
     if(worker.holdingHoe)
     {
         applyMaterial(shader,Materials::wood());
-        glm::mat4 hoe=glm::translate(root,glm::vec3(.38f,1.42f,-.55f));
-        const float angle=worker.digging?(-28.0f+cycle*42.0f):-10.0f;
+        const float progress=1.0f-worker.diggingTimer/4.5f;
+        const glm::vec3 hand=worker.digging
+            ?glm::vec3(.10f,2.35f-.85f*progress,-.10f)
+            :glm::vec3(.38f,1.42f,-.55f);
+        glm::mat4 hoe=glm::translate(root,hand);
+        const float angle=worker.digging?(65.0f+cycle*8.0f):-10.0f;
         hoe=glm::rotate(hoe,glm::radians(angle),glm::vec3(0,0,1));
         cubes_.drawColored(shader,hoe,glm::vec3(0,-.62f,0),glm::vec3(.09f,2.05f,.09f),glm::vec3(.48f,.28f,.10f));
         cubes_.drawColored(shader,hoe,glm::vec3(0,-1.62f,0),glm::vec3(.66f,.14f,.28f),glm::vec3(.28f,.31f,.33f),-12.0f,glm::vec3(0,0,1));
+    }
+    if(worker.holdingUmbrella)
+    {
+        // Open only after clearing the house doorway. The canopy stays above
+        // the farmer's hat; the shaft passes through his raised hand.
+        applyMaterial(shader,Materials::metal());
+        cubes_.drawColored(shader,root,glm::vec3(.34f,2.13f,.30f),glm::vec3(.045f,1.55f,.045f),glm::vec3(.28f));
+        applyMaterial(shader,Materials::cloth());
+        primitives_.drawCone(shader,root,glm::vec3(.10f,2.97f,0),glm::vec3(2.20f,.42f,2.20f),glm::vec3(.12f,.33f,.39f));
+        primitives_.drawSphere(shader,root,glm::vec3(.10f,3.20f,0),glm::vec3(.08f),glm::vec3(.18f));
     }
 }
 
@@ -216,6 +239,7 @@ void AnimationSystem::sendWorkerHome()
     Worker& worker = workers_[0];
     worker.scatteringFeed=false;
     worker.scatteringTimer=0.0f;
+    worker.holdingUmbrella=false;
     if(worker.holdingHose)
     {
         worker.holdingHose=false;
@@ -264,11 +288,13 @@ bool AnimationSystem::interactWithWorker()
     if(worker.holdingHose)
     {
         worker.holdingHose=false;
-        if(glm::distance(here,glm::vec2(FarmInteraction::WaterTroughInteraction.x,
-                                        FarmInteraction::WaterTroughInteraction.z))<1.85f)
+        const int cow=abs(here.x+12.0f)<abs(here.x+8.0f)?0:1;
+        const glm::vec3 trough=FarmInteraction::cowTroughApproach(cow);
+        if(glm::distance(here,glm::vec2(trough.x,trough.z))<1.85f)
         {
+            activeWaterCow_=cow;
             hosePlacedAtTrough_=true;
-            hoseEndPosition_=FarmInteraction::WaterTroughNozzle;
+            hoseEndPosition_=FarmInteraction::cowTroughNozzle(cow);
         }
         else if(glm::distance(here,glm::vec2(FarmInteraction::ValvePosition.x,
                                               FarmInteraction::ValvePosition.z))<1.75f)
@@ -303,7 +329,7 @@ bool AnimationSystem::interactWithWorker()
         if(nearest>=0)return beginHayPickup(worker,nearest);
     }
     if (worker.carryingHay &&
-             glm::distance(here, glm::vec2(-12.0f, -3.8f)) < 1.6f)
+             glm::distance(here, glm::vec2(worker.deliveredLoads%2==0?-12.0f:-8.0f, -3.8f)) < 1.6f)
     {
         worker.state = WorkerState::Feeding;
         worker.taskTimer = 0.0f;
@@ -327,8 +353,8 @@ bool AnimationSystem::scatterPoultryFeed()
                                 FarmInteraction::PoultryFeedPosition.z);
     if(glm::distance(here,feedingArea)>=1.75f)return false;
     worker.scatteringFeed=true;
-    worker.scatteringTimer=2.2f;
-    worker.holdingFeedBag=false;
+    worker.scatteringTimer=1.0f;
+    worker.feedBoxEmpty=true;
     poultryFeedLevel_=1.0f;
     return true;
 }
@@ -342,7 +368,26 @@ bool AnimationSystem::pickupFeedBag()
        glm::vec2(FarmInteraction::FeedStorePosition.x,FarmInteraction::FeedStorePosition.z))>1.55f)return false;
     feedBagAvailable_=false;
     worker.holdingFeedBag=true;
+    worker.feedBoxEmpty=false;
     return true;
+}
+
+bool AnimationSystem::returnFeedBox()
+{
+    Worker& worker=workers_[0];
+    if(!manualWorkerControl_||worker.state!=WorkerState::Manual||!worker.holdingFeedBag)return false;
+    if(glm::distance(glm::vec2(worker.position.x,worker.position.z),
+        glm::vec2(FarmInteraction::FeedStorePosition.x,FarmInteraction::FeedStorePosition.z))>1.55f)return false;
+    worker.holdingFeedBag=false;
+    feedBagAvailable_=true;
+    return true;
+}
+
+void AnimationSystem::beginRainInspection()
+{
+    manualWorkerControl_=true;
+    workers_[0].state=WorkerState::Manual;
+    workers_[0].holdingUmbrella=false;
 }
 
 bool AnimationSystem::pickupHoe()
@@ -365,6 +410,8 @@ bool AnimationSystem::beginHoeWork()
        glm::vec2(FarmInteraction::HoeWorkPosition.x,FarmInteraction::HoeWorkPosition.z))>1.5f)return false;
     worker.digging=true;
     worker.diggingTimer=4.5f;
+    hayWorkProgress_=0.0f;
+    worker.yaw=180.0f;
     return true;
 }
 
@@ -476,6 +523,7 @@ void AnimationSystem::updateWorker(Worker& worker, float deltaTime)
     {
         count = static_cast<int>(toCows.size());
         target = toCows[worker.routeIndex];
+        if(worker.routeIndex==count-1)target.x=worker.deliveredLoads%2==0?-12.0f:-8.0f;
     }
     else if(worker.routeIndex<0)
     {
@@ -571,6 +619,7 @@ void AnimationSystem::updateWorkers(float deltaTime)
             {
                 worker.carryingHay = false;
                 ++worker.deliveredLoads;
+                visibleCowHayLoads_=min(2,worker.deliveredLoads);
                 worker.hayIndex=-1; // Consumed stock remains unavailable after feeding.
                 worker.taskTimer = 0.0f;
                 worker.routeIndex = 0;
@@ -592,17 +641,18 @@ void AnimationSystem::updateWorkers(float deltaTime)
         if(worker.diggingTimer>0.0f)
         {
             worker.diggingTimer=max(0.0f,worker.diggingTimer-deltaTime);
+            hayWorkProgress_=1.0f-worker.diggingTimer/4.5f;
             worker.digging=worker.diggingTimer>0.0f;
             worker.animationTime+=deltaTime;
         }
     }
     if(waterValveOpen_ && hosePlacedAtTrough_)
-        waterTroughFill_=min(1.0f,waterTroughFill_+0.12f*deltaTime);
+        waterTroughFills_[activeWaterCow_]=min(1.0f,waterTroughFills_[activeWaterCow_]+0.50f*deltaTime);
 }
 
 const char* AnimationSystem::waterStatus() const
 {
-    if(waterTroughFill_>=0.999f) return "water trough full";
+    if(waterTroughFill()>=0.999f) return "water trough full";
     if(waterValveOpen_&&hosePlacedAtTrough_) return "filling the water trough";
     if(workers_[0].holdingHose) return waterValveOpen_?"hose in hand - water flowing":"hose in hand - valve closed";
     if(hosePlacedAtTrough_) return waterValveOpen_?"hose placed at trough":"hose at trough - valve closed";

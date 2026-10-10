@@ -48,7 +48,7 @@ respond to user commands and the active time of day.
 | Animation | Hierarchical body joints, smooth movement/turns, worker tasks, rotating fans, animated gates and shelter routines |
 | Farm logic | Calf routes, manual or automatic worker hay delivery, daytime roaming and automatic night sheltering |
 | Lighting | Switchable Flat/Gouraud/Phong shading, directional sunlight, five fixed point lights and an aimable/sweeping spotlight |
-| Ray tracing | Optional real-time analytic farm view with ray/object intersections, hard shadows and one reflection bounce |
+| Ray reflections | Hybrid screen-space reflection rays on wet roads, with a textured planar capture for off-screen details; original scene colours and lights remain intact |
 | Navigation | Free-look camera with swept collision against gates, walls, fences, trees, stalls and equipment |
 | Camera modes | Perspective exploration, bird's-eye view and four simultaneous perspective/orthographic views |
 | Curved geometry | Bézier surface-of-revolution milk can, B-spline irrigation pipe, sampled ruled shed roof and Catmull-Rom cattle torso/head/neck profiles |
@@ -59,7 +59,7 @@ respond to user commands and the active time of day.
 - Model, view and projection transformations using GLM
 - Flat per-triangle, per-fragment Phong, and per-vertex Gouraud lighting
 - Selectable per-vertex Gouraud ambient, diffuse and specular lighting
-- GPU fragment-shader ray tracing with primary rays, shadow rays and reflective secondary rays
+- GPU reflection-ray marching against the scene depth buffer with a planar scene-capture fallback (hybrid reflections, not full path tracing)
 - Multiple independently controlled light sources with emissive fixtures
 - Automatic or manual spotlight aiming (the drone and its moving point light have been removed)
 - Indexed procedural meshes with positions, normals and UV coordinates
@@ -76,7 +76,9 @@ respond to user commands and the active time of day.
 
 Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\run_simulation.ps1`, or choose **Run AMS Agro Farm Guided Simulation** in VS Code's Run Task menu.
 
-The automatic tour in `src/simulation.cpp` is exactly 200 seconds and tells one continuous farmer-led workday in twelve compact chapters. A fast aerial orbit covers the farm and its surrounding fields before the gate opens and the collision-aware camera enters through the central road. All mobile poultry begin inside their coop. The farmer leaves home, opens the water tap, pulls the hose to the shared cattle trough, fills it, retrieves the hose and returns it beside the pipe. He then releases the poultry, enters the instrument room for a visible feed sack and scatters grain for the moving hens and ducks. Next he completes two separate hay trips, delivering one pickup block for each adult cow, and walks to open the calf side gate. He returns to the instrument room, carries out a visible hoe, works a cultivated soil patch and puts the tool back on its rack. Finally he guides the calves home first, the poultry home second, and enters his house. A three-panel Flat/Gouraud/Phong shot compares the same sculpted cattle before the night-light sequence. The closing rain shot compares the complete Phong farm beside an analytic ray-traced wet view with hard shadow rays and a reflective secondary bounce. Dedicated doorway/interior camera angles and collision-safe detours prevent walls, roofs and other scenery from being crossed. The technical HUD labels every chapter, camera, render mode, light state and live task.
+The automatic tour in `src/simulation.cpp` lasts exactly 240 seconds in twelve chapters. An oblique morning aerial establishes the whole farm, followed by the owner billboard, entrance banner and gate entry. The farmer delivers hay to both cows. The camera travels beside him as he walks to open the poultry gate, then eases into a clear frontal view of the opening. He feeds the poultry, immediately walks back with the same empty box, and returns it before collecting the hoe. He releases the calves and lowers a top hay bale into a ground pile. A close three-panel study demonstrates Flat, Gouraud and Phong highlights on the Bezier milk vessel in real daylight before the afternoon begins. A warm evening aerial shows the practical lights, then he returns the hoe and guides the animals home. Consumed hay and grain disappear. Once every animal is home, he fills both cow vessels, returns the hose, secures the gates and enters his house. The final 60 seconds cover night: 18 seconds of afternoon-to-night and night aerial views from three angles, 22 seconds of rain/reflections and umbrella inspection, then 20 seconds for his return home and the lighting finale. The shed lights switch off first, the entrance nameplate follows, and a final aerial shows the remaining lights. Wet-road reflection rays preserve the real farm textures and lighting; a mirrored scene capture supplies off-screen details. The HUD identifies the method honestly: screen-space rays with a planar fallback, not full-scene path tracing. The lower overlay, progress bar and elapsed/total timer are removed.
+
+The opening eight seconds of the final aerial section begin in warm afternoon light and fade continuously to night. Fence and sign lamps brighten first, followed by the shed lights and spotlight. The farmer turns toward the calves before opening their gate and stays clear of the doorway. Afternoon colours are softly warm rather than strongly red, and stronger moon, point and spot lighting keeps the night farm readable. These refinements preserve the 240-second duration.
 
 Space pauses/resumes, R restarts, +/- changes speed (0.25x--4x), and Escape exits. After the tour, live farm animations continue. Normal interactive mode is unchanged. An already built executable can also be started with `--simulation`. Use `--simulation-test` for the hidden full-timeline render and worker-flow check.
 
@@ -140,7 +142,7 @@ After building, check all render modes in a hidden window:
 | Mouse wheel | Zoom |
 | `B` | Toggle bird's-eye view |
 | `V` | Toggle four-viewport mode |
-| `X` | Toggle the real-time ray-traced farm view |
+| `X` | Toggle hybrid wet-road reflection rays on the original textured farm |
 | `Y` | Cycle Flat, Gouraud and Phong shading |
 | `F2` | Control the worker with a following camera, or return to free camera |
 

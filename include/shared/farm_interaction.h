@@ -6,9 +6,9 @@
 namespace FarmInteraction
 {
 constexpr int HayCount = 3;
-inline glm::vec3 hayPosition(int index) { return { -4.1f, 0.19f, 3.4f + index * 1.05f }; }
+inline glm::vec3 hayPosition(int index) { return { -4.1f, 0.19f, index==2?7.10f:3.4f + index * 1.05f }; }
 // The worker stands beside a bundle instead of walking through its centre.
-inline glm::vec3 hayApproachPosition(int index) { return { -2.95f, 0.0f, 3.4f + index * 1.05f }; }
+inline glm::vec3 hayApproachPosition(int index) { return { -2.95f, 0.0f, index==2?7.10f:3.4f + index * 1.05f }; }
 
 // The rigid B-spline pipe ends here. A flexible hose continues from this
 // point and can reach the cattle-shed water trough.
@@ -19,12 +19,14 @@ const glm::vec3 HoseRest(6.85f, 0.27f, 3.72f);
 const glm::vec3 ValvePosition(8.07f, 1.48f, 3.30f);
 const glm::vec3 WaterTroughInteraction(-8.0f, 0.0f, -3.75f);
 const glm::vec3 WaterTroughNozzle(-8.0f, 1.05f, -4.96f);
+inline glm::vec3 cowTroughApproach(int cow) { return {cow==0?-12.0f:-8.0f,0.0f,-3.75f}; }
+inline glm::vec3 cowTroughNozzle(int cow) { return {cow==0?-12.0f:-8.0f,1.05f,-4.96f}; }
 const glm::vec3 PoultryFeedPosition(5.5f, 0.0f, 7.1f);
 const glm::vec3 FeedStorePosition(11.35f, 0.0f, -12.05f);
 const glm::vec3 HoeStorePosition(10.05f, 0.0f, -12.05f);
 // The cultivated patch sits beside (not inside) the hay area, leaving a clear
 // walking lane while making the farmer's hoe work visible in the same shot.
-const glm::vec3 HoeWorkPosition(-1.65f, 0.0f, 5.70f);
+const glm::vec3 HoeWorkPosition(-4.0f, 0.0f, 2.05f);
 inline float workerFloor(float x, float z)
 {
     if(x>6.25f&&x<9.75f&&z>=10.4f&&z<13.6f)return .22f;

@@ -12,13 +12,20 @@
 using namespace std;
 using namespace FarmStyle;
 
-void FarmScene::drawHayArea(const Shader& shader, unsigned int hayAvailableMask) const
+void FarmScene::drawHayArea(const Shader& shader, unsigned int hayAvailableMask,
+                            float workProgress) const
 {
     drawHayBale(shader, glm::vec3(-10.2f, 0.52f, 2.0f), -6.0f);
     drawHayBale(shader, glm::vec3(-8.0f, 0.52f, 2.2f), 4.0f);
     drawHayBale(shader, glm::vec3(-5.9f, 0.52f, 2.0f), -3.0f);
     drawHayBale(shader, glm::vec3(-9.1f, 1.48f, 2.1f), 3.0f);
-    drawHayBale(shader, glm::vec3(-6.9f, 1.48f, 2.1f), -5.0f);
+    // This top bundle is physically pulled down by the hoe. It remains in
+    // its new ground-level pile after the action, including afternoon shots.
+    const float pull=glm::smoothstep(.12f,.85f,glm::clamp(workProgress,0.0f,1.0f));
+    const glm::vec3 top(-5.9f,1.48f,2.0f),pile(-5.65f,.52f,5.45f);
+    glm::vec3 moving=glm::mix(top,pile,pull);
+    moving.y+=sin(pull*glm::pi<float>())*.18f;
+    drawHayBale(shader,moving,-5.0f+pull*18.0f);
     drawHayBale(shader, glm::vec3(-8.0f, 0.52f, 4.0f), 8.0f);
     drawHayBale(shader, glm::vec3(-6.0f, 0.52f, 4.1f), -7.0f);
     for(int i=0;i<FarmInteraction::HayCount;++i) if(hayAvailableMask & (1u<<i))

@@ -71,6 +71,7 @@
     <ClCompile Include="src\simulation.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\primitive_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\ray_trace_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="src\wet_reflection_renderer.cpp"><Filter>Source Files</Filter></ClCompile>
     <ClCompile Include="src\texture_manager.cpp"><Filter>Source Files</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +98,7 @@
     <ClInclude Include="include\material.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\primitive_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\ray_trace_renderer.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="include\wet_reflection_renderer.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\shader.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\simulation.h"><Filter>Header Files</Filter></ClInclude>
     <ClInclude Include="include\texture_manager.h"><Filter>Header Files</Filter></ClInclude>
@@ -106,6 +108,7 @@
     <None Include="shaders\gouraud.fs"><Filter>Shaders</Filter></None>
     <None Include="shaders\gouraud.vs"><Filter>Shaders</Filter></None>
     <None Include="shaders\raytrace.fs"><Filter>Shaders</Filter></None>
+    <None Include="shaders\wet_reflection.fs"><Filter>Shaders</Filter></None>
     <None Include="shaders\raytrace.vs"><Filter>Shaders</Filter></None>
     <None Include="shaders\texture.fs"><Filter>Shaders</Filter></None>
     <None Include="shaders\texture.vs"><Filter>Shaders</Filter></None>

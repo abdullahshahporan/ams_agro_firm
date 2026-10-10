@@ -35,7 +35,7 @@ void FarmScene::drawTrough(const Shader& shader, const glm::vec3& position, floa
 void FarmScene::drawIndoorCowStalls(const Shader& shader,
                                     float stallGateAngleDegrees,
                                     int deliveredHayLoads,
-                                    float waterTroughFill) const
+                                    float waterTroughFill, float secondWaterFill) const
 {
     // Two stalls align with the tied cows. The front remains accessible for
     // feeding, while O opens the rear gates for inspection behind the cattle.
@@ -57,29 +57,14 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader,
     drawTrough(shader, glm::vec3(-12.0f, 0.0f, -5.45f), 2.55f);
     drawTrough(shader, glm::vec3( -8.0f, 0.0f, -5.45f), 2.55f);
 
-    // Fresh cut grass/fodder is deliberately green and visibly raised above
-    // the trough base so it is obvious when entering the shed.
-    applyMaterial(shader, Materials::grass());
-    for (const float xCenter : {-12.0f})
+    // Each cow has its own vessel. Morning hay is consumed before the two
+    // afternoon water fills, so neither animal is assigned only one task.
+    for(int cow=0;cow<2;++cow)
     {
-        for (int strip = -2; strip <= 2; ++strip)
-        {
-            cubes_.drawTextured(
-                shader,
-                glm::vec3(xCenter + strip * 0.42f, 0.48f + abs(strip) * 0.015f, -5.45f),
-                glm::vec3(0.50f, 0.15f, 0.62f), textures_.hay,
-                glm::vec3(0.30f, 0.72f, 0.18f), glm::vec2(1.0f),
-                static_cast<float>(strip) * 4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-        }
-    }
-
-    // The second vessel is the dedicated drinking-water trough.  Its visible
-    // blue surface rises gradually while the hose is placed above it.
-    if(waterTroughFill>0.001f)
-    {
-        const float fill=glm::clamp(waterTroughFill,0.0f,1.0f);
+        const float fill=glm::clamp(cow==0?waterTroughFill:secondWaterFill,0.0f,1.0f);
+        if(fill<=0.001f)continue;
         applyMaterial(shader,Materials::metal());
-        cubes_.drawColored(shader,glm::vec3(-8.0f,0.32f+0.44f*fill,-5.45f),
+        cubes_.drawColored(shader,glm::vec3(cow==0?-12.0f:-8.0f,0.32f+0.44f*fill,-5.45f),
                            glm::vec3(2.30f,0.05f,0.70f),
                            glm::vec3(0.08f,0.45f,0.82f));
     }
@@ -87,13 +72,11 @@ void FarmScene::drawIndoorCowStalls(const Shader& shader,
     if (deliveredHayLoads > 0)
     {
         applyMaterial(shader, Materials::hay());
-        const float height = min(deliveredHayLoads, 4) * 0.055f;
-        for (int strip = -2; strip <= 2; ++strip)
-            cubes_.drawTextured(shader,
-                                glm::vec3(-12.0f + strip * 0.40f,
-                                          0.60f + height, -5.45f),
-                                glm::vec3(0.40f, 0.15f + height, 0.52f),
-                                textures_.hay, HayTint);
+        for(int cow=0;cow<min(deliveredHayLoads,2);++cow)
+            for (int strip = -2; strip <= 2; ++strip)
+                cubes_.drawTextured(shader,
+                    glm::vec3((cow==0?-12.0f:-8.0f)+strip*0.40f,0.64f,-5.45f),
+                    glm::vec3(0.40f,0.20f,0.52f),textures_.hay,HayTint);
     }
 
     // Two small fodder mats sit inside the ox-side calf lane. N routes the

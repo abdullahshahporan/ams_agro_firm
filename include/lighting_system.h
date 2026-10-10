@@ -30,6 +30,8 @@ public:
     void toggleDiffuse() { diffuseEnabled_ = !diffuseEnabled_; }
     void toggleSpecular() { specularEnabled_ = !specularEnabled_; }
     void setAfternoon(bool afternoon) { afternoonMode_ = afternoon; }
+    void setDuskProgress(float progress) { duskProgress_=glm::clamp(progress,0.0f,1.0f); }
+    float duskProgress() const { return duskProgress_; }
 
     bool directionalEnabled() const { return directionalEnabled_; }
     bool pointLightsEnabled() const;
@@ -58,6 +60,7 @@ public:
 private:
     bool pointLightEnabled(size_t index) const;
     float fixtureEmission(bool enabled) const;
+    float lampBlend(float start,float end) const;
 
     bool directionalEnabled_{true};
     bool shedLightsEnabled_{true};
@@ -70,6 +73,7 @@ private:
     bool diffuseEnabled_{true};
     bool specularEnabled_{true};
     bool afternoonMode_{false};
+    float duskProgress_{-1.0f};
     bool spotlightSweep_{false};
     float spotlightPhase_{0.0f};
     float spotlightYaw_{0.0f};

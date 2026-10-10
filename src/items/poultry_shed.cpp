@@ -32,14 +32,18 @@ void FarmScene::drawPoultryShed(const Shader& shader, float doorAngleDegrees) co
     // A real slatted gate closes the open front of the poultry room.  It
     // swings outward before the staged doorway routes release the birds and
     // closes only after every mobile hen and duck has returned.
-    glm::mat4 gate=glm::translate(glm::mat4(1.0f),origin+glm::vec3(-1.50f,0.0f,-1.58f));
-    gate=glm::rotate(gate,glm::radians(doorAngleDegrees),glm::vec3(0,1,0));
-    for(float x:{0.08f,3.00f})
+    // The east hinge is offset beyond the side wall. Swing toward the back
+    // of the coop, so the open leaf clears both the west hose and north tank.
+    cubes_.drawTextured(shader,origin+glm::vec3(1.65f,.72f,-1.58f),
+                        glm::vec3(.28f,.15f,.12f),textures_.metal,DarkMetal);
+    glm::mat4 gate=glm::translate(glm::mat4(1.0f),origin+glm::vec3(1.76f,0.0f,-1.58f));
+    gate=glm::rotate(gate,glm::radians(180.0f+doorAngleDegrees),glm::vec3(0,1,0));
+    for(float x:{0.08f,3.20f})
         cubes_.drawTextured(shader,gate,glm::vec3(x,0.72f,0),
                             glm::vec3(0.13f,1.34f,0.13f),textures_.wood,WarmWood);
     for(float y:{0.24f,0.72f,1.20f})
-        cubes_.drawTextured(shader,gate,glm::vec3(1.54f,y,0),
-                            glm::vec3(3.08f,0.11f,0.11f),textures_.wood,WarmWood,
+        cubes_.drawTextured(shader,gate,glm::vec3(1.64f,y,0),
+                            glm::vec3(3.28f,0.11f,0.11f),textures_.wood,WarmWood,
                             glm::vec2(3.0f,.5f));
 
     applyMaterial(shader, Materials::metal());

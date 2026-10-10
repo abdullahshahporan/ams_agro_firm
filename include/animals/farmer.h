@@ -40,6 +40,8 @@ struct Worker
     bool scatteringFeed{false};
     float scatteringTimer{0.0f};
     bool holdingFeedBag{false};
+    bool feedBoxEmpty{false};
+    bool holdingUmbrella{false};
     bool holdingHoe{false};
     bool digging{false};
     float diggingTimer{0.0f};

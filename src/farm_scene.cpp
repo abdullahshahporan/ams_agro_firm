@@ -12,7 +12,7 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees,
                        float waterValveAngle, bool workerHoldingHose,
                        bool hosePlacedAtTrough, const glm::vec3& hoseEndPosition,
                        float waterTroughFill, bool feedBagAvailable,
-                       bool hoeAvailable) const
+                       bool hoeAvailable, float secondWaterFill, float hayWorkProgress) const
 {
     applyMaterial(shader, Materials::grass());
     drawGround(shader);
@@ -28,9 +28,9 @@ void FarmScene::render(const Shader& shader, float gateAngleDegrees,
     drawCowShed(shader, calfShedDoorAngleDegrees);
     drawBarn(shader);
     drawIndoorCowStalls(shader, stallGateAngleDegrees, deliveredHayLoads,
-                       waterTroughFill);
+                       waterTroughFill,secondWaterFill);
     applyMaterial(shader, Materials::hay());
-    drawHayArea(shader, hayAvailableMask);
+    drawHayArea(shader, hayAvailableMask,hayWorkProgress);
     applyMaterial(shader, Materials::metal());
     drawWaterFacility(shader);
     drawWaterHose(shader,waterValveOpen,waterValveAngle,workerHoldingHose,

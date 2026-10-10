@@ -109,6 +109,11 @@ void AnimationSystem::updateCowPatrol(Cow& cow, float deltaTime)
 
 void AnimationSystem::updateCows(float deltaTime)
 {
+    for(size_t index=0;index<cows_.size();++index)
+        if(cows_[index].tied)
+            cows_[index].state=(static_cast<int>(index)<visibleCowHayLoads_||
+                                waterTroughFills_[index]>.05f)
+                ?CowState::Feeding:CowState::Standing;
     if (!nightMode_ && adultCowsOn_)
     {
         for (Cow& cow : cows_)

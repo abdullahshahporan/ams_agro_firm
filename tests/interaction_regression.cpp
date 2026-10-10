@@ -88,10 +88,32 @@ int main()
         require(water.interactWithWorker()&&water.hosePlacedAtTrough(),"Hose could not be placed at water trough");
         for(int i=0;i<1000;++i)water.update(1.0f/120.0f);
         require(water.waterTroughFill()>0.95f,"Open valve did not fill water trough");
+        require(water.waterTroughFill(0)==0.0f&&water.waterTroughFill(1)>.95f,
+                "Watering one cow incorrectly filled both vessels");
+        require(water.interactWithWorker()&&water.workerHoldingHose(),"Could not retrieve hose for second cow");
+        water.moveManualWorker(FarmInteraction::cowTroughApproach(0),.016f);
+        require(water.interactWithWorker()&&water.hosePlacedAtTrough(),"Could not place hose for the other cow");
+        for(int i=0;i<270;++i)water.update(1.0f/120.0f);
+        require(water.waterTroughFill(0)>.99f&&water.waterTroughFill(1)>.99f,
+                "Both cows did not receive a separate fast water fill");
+        require(a.visibleCowHayLoads()==2,"Hay was not visible in both cow vessels");
+        a.consumeCowHay();
+        require(a.visibleCowHayLoads()==0&&a.deliveredHayLoads()==3,
+                "Consumed hay should disappear without losing delivery history");
         water.stopWaterFlow();
         water.moveManualWorker(FarmInteraction::PoultryFeedPosition,.016f);
         require(water.scatterPoultryFeed()&&water.poultryFeedLevel()>0.99f&&
                 water.workers()[0].scatteringFeed,"Worker could not scatter visible poultry feed");
+        AnimationSystem box;box.toggleManualWorker();
+        box.moveManualWorker(FarmInteraction::FeedStorePosition,.016f);
+        require(box.pickupFeedBag(),"Feed box pickup failed");
+        box.moveManualWorker(FarmInteraction::PoultryFeedPosition,.016f);
+        require(box.scatterPoultryFeed()&&box.workerHoldingFeedBag()&&box.workers()[0].feedBoxEmpty,
+                "Scattering feed lost the empty box");
+        require(!box.pickupHoe(),"Farmer picked up hoe before returning feed box");
+        box.moveManualWorker(FarmInteraction::FeedStorePosition,.016f);
+        require(box.returnFeedBox()&&!box.workerHoldingFeedBag()&&box.feedBagAvailable(),
+                "Empty box was not returned to the instrument room");
         const glm::vec3 before=a.workers()[0].position;a.update(numeric_limits<float>::quiet_NaN());
         require(a.workers()[0].position==before,"Nonfinite timestep corrupted state");
         cout<<"PASS: solid dynamic hay, three unique deliveries, door clearance, direct calf control, valve/hose/trough, poultry feed scattering, invalid dt.\n";

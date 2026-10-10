@@ -14,7 +14,7 @@
 #include "hud_renderer.h"
 #include "lighting_system.h"
 #include "primitive_renderer.h"
-#include "ray_trace_renderer.h"
+#include "wet_reflection_renderer.h"
 #include "shader.h"
 #include "simulation.h"
 #include "texture_manager.h"
@@ -605,15 +605,17 @@ void renderScene(const Shader& shader, const FarmScene& farmScene,
                      lightingSystem,
                      animationSystem.workerDoorAngle(),
                      animationSystem.hayAvailableMask(),
-                     animationSystem.deliveredHayLoads(),
+                     animationSystem.visibleCowHayLoads(),
                      animationSystem.waterValveOpen(),
                      animationSystem.waterValveAngle(),
                      animationSystem.workerHoldingHose(),
                      animationSystem.hosePlacedAtTrough(),
                      animationSystem.hoseEndPosition(),
-                     animationSystem.waterTroughFill(),
+                     animationSystem.waterTroughFill(0),
                      animationSystem.feedBagAvailable(),
-                     animationSystem.hoeAvailable());
+                     animationSystem.hoeAvailable(),
+                     animationSystem.waterTroughFill(1),
+                     animationSystem.hayWorkProgress());
     entityRenderer.render(shader, animationSystem);
     curvedRenderer.render(shader, textures);
 }
@@ -629,7 +631,7 @@ void renderOneView(
     const EntityRenderer& entityRenderer, const CurvedRenderer& curvedRenderer,
     const FarmTextures& textures, int x, int y, int width, int height,
     const glm::mat4& view, const glm::mat4& projection,
-    const glm::vec3& viewPosition)
+    const glm::vec3& viewPosition,bool reflectionCapture=false)
 {
     if (width <= 0 || height <= 0)
         return;
@@ -639,6 +641,7 @@ void renderOneView(
     shader.setMat4("view", view);
     lightingSystem.setupShader(shader, viewPosition);
     shader.setBool("flatShading", rasterShadingMode == 0);
+    shader.setBool("reflectionCapture",reflectionCapture);
     renderScene(shader, farmScene, entityRenderer, curvedRenderer, textures);
 }
 
@@ -677,7 +680,7 @@ void drawInteractiveHud(HudRenderer& hud,int width,int height)
         (animationSystem.manualWorkerControl()?"FARMER FOLLOW":
         (animationSystem.manualCalfControl()?"CALF FOLLOW":"FREE CAMERA")));
     hud.text("CAMERA   "+view,x+14*scale,margin+54*scale,1.05f*scale,white);
-    hud.text(string("RENDER   ")+(rayTracingMode?"RAY TRACING":shadingName()),
+    hud.text(string("RENDER   ")+(rayTracingMode?"HYBRID WET RAYS":shadingName()),
              x+14*scale,margin+73*scale,1.05f*scale,gold);
     hud.text(string("LIGHTS   SUN ")+(lightingSystem.pointLightsEnabled()?"POINT ":"OFF ")+
              (lightingSystem.spotlightEnabled()?"SPOT":"NO SPOT"),
@@ -814,12 +817,11 @@ int main(int argc, char** argv)
         // These objects must be destroyed while the OpenGL context still exists.
         Shader phongShader("shaders/texture.vs", "shaders/texture.fs");
         Shader gouraudShader("shaders/gouraud.vs", "shaders/gouraud.fs");
-        Shader rayTraceShader("shaders/raytrace.vs", "shaders/raytrace.fs");
         TextureManager textureManager;
         CubeRenderer cubeRenderer;
         PrimitiveRenderer primitiveRenderer;
         CurvedRenderer curvedRenderer;
-        RayTraceRenderer rayTraceRenderer;
+        WetReflectionRenderer wetReflectionRenderer;
         HudRenderer hudRenderer;
         FarmScene farmScene(cubeRenderer, primitiveRenderer, textureManager.farm());
         EntityRenderer entityRenderer(cubeRenderer, primitiveRenderer);
@@ -892,26 +894,24 @@ int main(int argc, char** argv)
 
                 if (rayTracingMode)
                 {
-                    glViewport(0, 0, framebufferWidth, framebufferHeight);
-                    glDisable(GL_DEPTH_TEST);
-                    rayTraceShader.use();
-                    lightingSystem.setupShader(rayTraceShader, camera.Position);
-                    rayTraceShader.setBool("nightMode", lightingSystem.nightMode());
-                    rayTraceShader.setBool("workerVisible", animationSystem.workers()[0].state
-                        != WorkerState::HomeIdle);
-                    rayTraceShader.setBool("workerCarryingHay",
-                                           animationSystem.workers()[0].carryingHay);
-                    rayTraceShader.setVec3("workerPosition",
-                                           animationSystem.workers()[0].position);
-                    rayTraceShader.setFloat("workerFeedProgress",
-                        animationSystem.workers()[0].state == WorkerState::Feeding
-                            ? min(animationSystem.workers()[0].taskTimer / 1.35f, 1.0f)
-                            : 0.0f);
-                    rayTraceShader.setInt("deliveredHayLoads",
-                                          animationSystem.deliveredHayLoads());
-                    rayTraceShader.setFloat("weatherWetness",0.0f);
-                    rayTraceRenderer.render(rayTraceShader, view, projection);
-                    glEnable(GL_DEPTH_TEST);
+                    wetReflectionRenderer.resize(framebufferWidth,framebufferHeight);
+                    const glm::vec3 eye=following?workerViewEye:camera.Position;
+                    const glm::mat4 inverseView=glm::inverse(view);
+                    glm::vec3 reflectedEye=eye;
+                    glm::vec3 reflectedTarget=eye-glm::vec3(inverseView[2]);
+                    glm::vec3 reflectedUp=glm::vec3(inverseView[1]);
+                    reflectedEye.y=.08f-reflectedEye.y;
+                    reflectedTarget.y=.08f-reflectedTarget.y;reflectedUp.y=-reflectedUp.y;
+                    const glm::mat4 reflectedView=glm::lookAt(reflectedEye,reflectedTarget,reflectedUp);
+                    glBindFramebuffer(GL_FRAMEBUFFER,wetReflectionRenderer.reflectionFramebuffer());
+                    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+                    renderOneView(phongShader,farmScene,entityRenderer,curvedRenderer,textureManager.farm(),
+                                  0,0,framebufferWidth,framebufferHeight,reflectedView,projection,reflectedEye,true);
+                    glBindFramebuffer(GL_FRAMEBUFFER,wetReflectionRenderer.sceneFramebuffer());
+                    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+                    renderOneView(phongShader,farmScene,entityRenderer,curvedRenderer,textureManager.farm(),
+                                  0,0,framebufferWidth,framebufferHeight,view,projection,eye);
+                    wetReflectionRenderer.compose(view,projection,reflectedView,eye,static_cast<float>(currentFrame),1.0f);
                 }
                 else if (fourViewMode && framebufferWidth >= 2 && framebufferHeight >= 2)
                 {

@@ -133,6 +133,7 @@ void AnimationSystem::updateBirdNavigation(Bird& bird, float deltaTime,
     {
         if(bird.navigationStage==0)target=insideDoor;
         else if(bird.navigationStage==1)target=outsideDoor;
+        else if(bird.navigationStage==2)target=outsideApproach;
         else {target=fieldTarget;finalTarget=true;}
     }
     else
@@ -143,7 +144,7 @@ void AnimationSystem::updateBirdNavigation(Bird& bird, float deltaTime,
         else {target=bird.shelterPosition;finalTarget=true;}
     }
     if (moveToward(bird.position, bird.yaw, target,
-                   max(0.72f, bird.speed), deltaTime))
+                   max(shelterRequested?1.35f:0.72f, bird.speed), deltaTime))
     {
         if(!finalTarget){++bird.navigationStage;return;}
         bird.navigationStage=0;
@@ -160,14 +161,32 @@ void AnimationSystem::updateBirds(float deltaTime)
             continue;
         if (bird.routeState == Calf::RouteState::Roaming)
         {
+            const glm::vec3 previous=bird.position;
+            const float previousAngle=bird.pathAngle;
             bird.animationTime += deltaTime;
             updateBirdPath(bird, deltaTime);
+            if(glm::distance(glm::vec2(bird.position.x,bird.position.z),
+                             glm::vec2(workers_[0].position.x,workers_[0].position.z))<.75f)
+            {
+                bird.position=previous;
+                bird.pathAngle=previousAngle;
+            }
         }
         else if (bird.routeState == Calf::RouteState::GoingToShelter ||
                  bird.routeState == Calf::RouteState::GoingToField)
         {
             bird.animationTime += deltaTime;
+            const glm::vec3 previous=bird.position;
+            const int previousStage=bird.navigationStage;
+            const auto previousState=bird.routeState;
             updateBirdNavigation(bird, deltaTime, shelterRequested_);
+            if(glm::distance(glm::vec2(bird.position.x,bird.position.z),
+                             glm::vec2(workers_[0].position.x,workers_[0].position.z))<.75f)
+            {
+                bird.position=previous;
+                bird.navigationStage=previousStage;
+                bird.routeState=previousState;
+            }
         }
     }
 }

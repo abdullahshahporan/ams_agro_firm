@@ -95,6 +95,7 @@
     <ClCompile Include="src\simulation.cpp" />
     <ClCompile Include="src\primitive_renderer.cpp" />
     <ClCompile Include="src\ray_trace_renderer.cpp" />
+    <ClCompile Include="src\wet_reflection_renderer.cpp" />
     <ClCompile Include="src\texture_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -119,6 +120,7 @@
     <ClInclude Include="include\material.h" />
     <ClInclude Include="include\primitive_renderer.h" />
     <ClInclude Include="include\ray_trace_renderer.h" />
+    <ClInclude Include="include\wet_reflection_renderer.h" />
     <ClInclude Include="include\shader.h" />
     <ClInclude Include="include\simulation.h" />
     <ClInclude Include="include\texture_manager.h" />
@@ -128,6 +130,7 @@
     <None Include="shaders\gouraud.fs" />
     <None Include="shaders\gouraud.vs" />
     <None Include="shaders\raytrace.fs" />
+    <None Include="shaders\wet_reflection.fs" />
     <None Include="shaders\raytrace.vs" />
     <None Include="shaders\texture.fs" />
     <None Include="shaders\texture.vs" />

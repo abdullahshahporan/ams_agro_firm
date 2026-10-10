@@ -33,6 +33,9 @@ public:
     bool toggleWaterValve();
     bool scatterPoultryFeed();
     bool pickupFeedBag();
+    bool returnFeedBox();
+    void beginRainInspection();
+    void setWorkerUmbrella(bool open) { workers_[0].holdingUmbrella=open; }
     bool pickupHoe();
     bool beginHoeWork();
     bool returnHoe();
@@ -53,7 +56,11 @@ public:
     bool workerHoldingHose() const { return workers_[0].holdingHose; }
     bool hosePlacedAtTrough() const { return hosePlacedAtTrough_; }
     const glm::vec3& hoseEndPosition() const { return hoseEndPosition_; }
-    float waterTroughFill() const { return waterTroughFill_; }
+    float waterTroughFill() const { return waterTroughFills_[activeWaterCow_]; }
+    float waterTroughFill(int cow) const { return waterTroughFills_[cow==0?0:1]; }
+    int visibleCowHayLoads() const { return visibleCowHayLoads_; }
+    void consumeCowHay() { visibleCowHayLoads_=0; }
+    float hayWorkProgress() const { return hayWorkProgress_; }
     const char* waterStatus() const;
     float poultryFeedLevel() const { return poultryFeedLevel_; }
     bool feedBagAvailable() const { return feedBagAvailable_; }
@@ -139,7 +146,10 @@ private:
     float waterValveAngle_{0.0f};
     bool hosePlacedAtTrough_{false};
     glm::vec3 hoseEndPosition_{FarmInteraction::HoseRest};
-    float waterTroughFill_{0.0f};
+    array<float,2> waterTroughFills_{{0.0f,0.0f}};
+    int activeWaterCow_{1};
+    int visibleCowHayLoads_{0};
+    float hayWorkProgress_{0.0f};
     float poultryFeedLevel_{0.0f};
     bool feedBagAvailable_{true};
     bool hoeAvailable_{true};

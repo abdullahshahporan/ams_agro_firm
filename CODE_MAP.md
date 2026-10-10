@@ -56,13 +56,13 @@ Headers stay in `include/`; implementation files stay in `src/`.
 | File | Responsibility |
 |---|---|
 | `src/main.cpp` | Keyboard/mouse input, camera/view selection, window and main loop |
-| `src/simulation.cpp` | Exact 200-second, 12-chapter workday and graphics showcase: fast aerial, collision-safe entry/follow cameras, all farm tasks, Flat/Gouraud/Phong comparison, staged night lights and ray-traced rain finale |
+| `src/simulation.cpp` | Exact 240-second film: moving poultry-gate follow camera, daytime farm tasks and vessel study, followed by 60 seconds of night aerials, wet-road reflections, umbrella inspection and staged lighting finale |
 | `src/hud_renderer.cpp`, `include/hud_renderer.h` | Code-native live-control dashboard used by the interactive project UI |
 | `src/farm_scene.cpp` | Calls the farm item drawing functions in order |
 | `src/entity_renderer.cpp` | Calls the animal and farmer drawing functions |
 | `src/animation_system.cpp` | Calls item updates; shared day/night and shelter state; movement helpers |
 | `src/curved_renderer.cpp` | Curved-item coordinator and shared GPU mesh upload/draw |
-| `src/lighting_system.cpp` | Directional/five point/spot light values, spotlight aiming, distance-haze color/range and shader uniforms (no drone) |
+| `src/lighting_system.cpp` | Directional/five point/spot lights, continuous afternoon-to-night sky and sunlight blending, staggered lamp brightness, spotlight aiming and haze uniforms |
 | `include/collision_system.h` | Collision boundaries for walls, doors, gates, obstacles and live pickup-hay stock |
 | `include/shared/farm_interaction.h` | Shared hay positions, safe approach points, hose/valve/trough coordinates and hose-length limit |
 | `src/texture_manager.cpp` | Loads textures |
@@ -72,9 +72,10 @@ Headers stay in `include/`; implementation files stay in `src/`.
 | `include/shared/` | Shared item colours, entity root transform and curve vertex format |
 | `shaders/texture.vs`, `shaders/texture.fs` | Textured Phong rendering plus derivative-based flat shading |
 | `shaders/gouraud.vs`, `shaders/gouraud.fs` | Gouraud per-vertex lighting |
-| `src/ray_trace_renderer.cpp`, `shaders/raytrace.vs`, `shaders/raytrace.fs` | Separate analytic ray-tracing preview: simplified objects, shadows and one reflection bounce |
+| `src/wet_reflection_renderer.cpp`, `include/wet_reflection_renderer.h`, `shaders/wet_reflection.fs` | Active hybrid wet-road reflections: 48-step depth-buffer ray marching, full textured-scene planar fallback, HDR framebuffer management and colour-preserving composition |
+| `src/ray_trace_renderer.cpp`, `shaders/raytrace.fs` | Retained analytic ray/object-intersection teaching implementation; the film and X toggle now use the original textured scene instead |
 
-The ray-traced preview uses its own analytic geometry; it does not draw the full textured item meshes.
+The active reflection effect is hybrid screen-space ray tracing with a planar capture fallback. It preserves the real item meshes, materials and existing lighting; it is not a full path tracer. `shaders/raytrace.vs` supplies the shared full-screen triangle.
 The object files use the existing `FarmScene`, `EntityRenderer`, `AnimationSystem` and `CurvedRenderer` declarations rather than creating duplicate classes or separate programs.
 
 ## Quick explanation to the teacher

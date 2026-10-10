@@ -227,8 +227,16 @@ void AnimationSystem::updateCalves(float deltaTime)
             continue;
         if (calf.routeState == Calf::RouteState::Roaming)
         {
+            const glm::vec3 previous=calf.position;
+            const float previousAngle=calf.pathAngle;
             calf.animationTime += deltaTime;
             updateCalfPath(calf, deltaTime);
+            if(glm::distance(glm::vec2(calf.position.x,calf.position.z),
+                             glm::vec2(workers_[0].position.x,workers_[0].position.z))<.95f)
+            {
+                calf.position=previous;
+                calf.pathAngle=previousAngle;
+            }
         }
         else if (calf.routeState == Calf::RouteState::GoingToShelter ||
                  calf.routeState == Calf::RouteState::GoingToField ||
@@ -244,7 +252,11 @@ void AnimationSystem::updateCalves(float deltaTime)
                    calves_[0].routeState!=Calf::RouteState::Sheltered)continue;
             }
             calf.animationTime += deltaTime;
+            const glm::vec3 previous=calf.position;
             updateCalfNavigation(calf, deltaTime, calfDestination_);
+            if(glm::distance(glm::vec2(calf.position.x,calf.position.z),
+                             glm::vec2(workers_[0].position.x,workers_[0].position.z))<.95f)
+                calf.position=previous;
         }
         else if (calf.routeState == Calf::RouteState::Feeding)
             calf.animationTime += deltaTime;

@@ -89,31 +89,13 @@ void FarmScene::drawWaterHose(const Shader& shader,bool valveOpen,float valveAng
     primitives_.drawSphere(shader,glm::mat4(1),end,glm::vec3(0.15f,0.12f,0.15f),
                            workerHoldingHose?glm::vec3(0.18f,0.24f,0.26f):glm::vec3(0.12f,0.18f,0.20f));
 
-    if(valveOpen)
+    // The carried nozzle is shut off. Water is visible only while it is
+    // deliberately placed over a cow's vessel.
+    if(valveOpen&&hosePlacedAtTrough&&!workerHoldingHose)
     {
         applyMaterial(shader,Materials::metal());
-        const glm::vec3 landing=hosePlacedAtTrough
-            ? glm::vec3(-8.0f,0.72f,-5.45f)
-            : glm::vec3(end.x,0.055f,end.z);
+        const glm::vec3 landing(end.x,0.72f,-5.45f);
         drawSegment(cubes_,shader,end,landing,0.085f,glm::vec3(0.12f,0.66f,1.00f));
 
-        // A running hose held above the lawn must visibly wet the ground.
-        // The shallow translucent-looking patch and radial splash streaks make
-        // the contact point readable even from the cinematic follow camera.
-        if(!hosePlacedAtTrough)
-        {
-            cubes_.drawColored(shader,landing+glm::vec3(0,-0.025f,0),
-                               glm::vec3(0.92f,0.025f,0.64f),
-                               glm::vec3(0.055f,0.34f,0.62f));
-            for(int splash=0;splash<8;++splash)
-            {
-                const float angle=glm::two_pi<float>()*splash/8.0f;
-                const glm::vec3 edge=landing+glm::vec3(cos(angle)*0.46f,
-                                                       0.075f+0.035f*(splash%2),
-                                                       sin(angle)*0.32f);
-                drawSegment(cubes_,shader,landing+glm::vec3(0,0.05f,0),edge,
-                            0.025f,glm::vec3(0.18f,0.72f,1.0f));
-            }
-        }
     }
 }

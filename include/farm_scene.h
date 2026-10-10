@@ -29,7 +29,8 @@ public:
                 float waterValveAngle, bool workerHoldingHose,
                 bool hosePlacedAtTrough, const glm::vec3& hoseEndPosition,
                 float waterTroughFill, bool feedBagAvailable,
-                bool hoeAvailable) const;
+                bool hoeAvailable, float secondWaterFill=0.0f,
+                float hayWorkProgress=0.0f) const;
     static const array<glm::vec3, 4>& futureCowPositions();
 
 private:
@@ -58,11 +59,13 @@ private:
     void drawCalfShedSideDoor(const Shader& shader, float angleDegrees) const;
     void drawTrough(const Shader& shader, const glm::vec3& position, float length) const;
     void drawIndoorCowStalls(const Shader& shader, float stallGateAngleDegrees,
-                            int deliveredHayLoads, float waterTroughFill) const;
+                            int deliveredHayLoads, float waterTroughFill,
+                            float secondWaterFill) const;
     void drawStallGate(const Shader& shader, const glm::vec3& hinge,
                        float angleDegrees) const;
 
-    void drawHayArea(const Shader& shader, unsigned int hayAvailableMask) const;
+    void drawHayArea(const Shader& shader, unsigned int hayAvailableMask,
+                     float workProgress) const;
     void drawHayBale(const Shader& shader, const glm::vec3& position, float rotation) const;
     void drawTrees(const Shader& shader) const;
     void drawTree(const Shader& shader, const glm::vec3& position, float scale) const;

@@ -70,6 +70,7 @@ uniform int cowCoatMode;
 uniform vec3 cowPatchColor;
 uniform vec3 cowMuzzleColor;
 uniform bool flatShading;
+uniform bool reflectionCapture;
 
 // Markings lie on the actual skin, not on floating geometry. The local
 // sphere position keeps the pattern attached while the animal moves.
@@ -148,6 +149,7 @@ vec3 calculateSpot(vec3 normal, vec3 viewDirection, vec3 albedo)
 
 void main()
 {
+    if(reflectionCapture&&FragPos.y<.10)discard;
     vec4 sampled = useTexture ? texture(texture1, TexCoord) : vec4(1.0);
     vec3 albedo = bovineAlbedo(sampled.rgb * objectTint);
     // Flat mode deliberately derives one normal from each rasterised

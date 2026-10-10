@@ -175,6 +175,22 @@ void testSphere(inout Hit hit, vec3 rayOrigin, vec3 rayDirection,
                   shininess, reflectivity);
 }
 
+// Small sign glyphs are evaluated on the banner surface so the entrance
+// remains identifiable in the full-screen road/reflection shot.
+int signRow(int letter,int row)
+{
+    ivec4 top;ivec3 bottom;
+    if(letter==0){top=ivec4(14,17,17,31);bottom=ivec3(17,17,17);} // A
+    else if(letter==1){top=ivec4(17,27,21,21);bottom=ivec3(17,17,17);} // M
+    else if(letter==2){top=ivec4(15,16,16,14);bottom=ivec3(1,1,30);} // S
+    else if(letter==3){top=ivec4(14,17,16,23);bottom=ivec3(17,17,15);} // G
+    else if(letter==4){top=ivec4(30,17,17,30);bottom=ivec3(20,18,17);} // R
+    else if(letter==5){top=ivec4(14,17,17,17);bottom=ivec3(17,17,14);} // O
+    else if(letter==6){top=ivec4(31,16,16,30);bottom=ivec3(16,16,16);} // F
+    else return 0;
+    return row<4?top[row]:bottom[row-4];
+}
+
 bool traceScene(vec3 rayOrigin, vec3 rayDirection,
                 out Hit hit)
 {
@@ -187,8 +203,13 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection,
         {
             vec3 point = rayOrigin + groundT * rayDirection;
             vec3 color = vec3(0.19, 0.43, 0.10);
-            if (abs(point.x) < 3.5 || (point.z > 6.0 && point.z < 12.0))
-                color = vec3(0.12, 0.13, 0.14);
+            bool exteriorRoad=abs(point.x)<4.0&&point.z>16.0;
+            bool farmRoad=abs(point.x)<2.4&&point.z>-2.0&&point.z<=16.0;
+            if (exteriorRoad||farmRoad)
+            {
+                float grain=sin(point.x*83.0+point.z*61.0)*sin(point.z*97.0)*.035;
+                color=vec3(.28,.22,.16)+grain;
+            }
             else if (abs(point.x) > 23.5 && abs(point.x) < 67.0 &&
                      point.z > -75.0 && point.z < 60.0)
             {
@@ -196,12 +217,13 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection,
                 color = mix(vec3(0.40, 0.32, 0.19),
                             vec3(0.20, 0.43, 0.10), cropRow);
             }
-            float grid = mod(floor(point.x) + floor(point.z), 2.0);
-            color *= mix(0.92, 1.05, grid);
             color=mix(color,color*vec3(0.54,0.62,0.69),weatherWetness*0.52);
+            float wetReflection=(exteriorRoad||farmRoad)?0.72:0.12;
+            vec3 groundNormal=normalize(vec3(weatherWetness*.006*sin(point.z*9.0),1.0,
+                                             weatherWetness*.006*sin(point.x*13.0)));
             acceptHit(hit, groundT, rayOrigin, rayDirection,
-                      vec3(0.0, 1.0, 0.0), color,
-                      mix(8.0,96.0,weatherWetness),mix(0.03,0.58,weatherWetness));
+                      groundNormal, color,
+                      mix(8.0,96.0,weatherWetness),mix(0.03,wetReflection,weatherWetness));
         }
     }
 
@@ -239,6 +261,36 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection,
             vec3(0.55, 2.25, 0.55), vec3(0.46, 0.16, 0.08), 12.0, 0.03);
     testBox(hit, rayOrigin, rayDirection, vec3(0.0, 4.72, 15.5),
             vec3(4.85, 0.55, 0.42), vec3(0.30, 0.10, 0.04), 18.0, 0.05);
+
+    // Closed entrance leaves and lit front fence match the end-of-day scene.
+    for(int side=-1;side<=1;side+=2)
+    {
+        for(int rail=0;rail<3;++rail)
+            testBox(hit,rayOrigin,rayDirection,vec3(side*1.91,.35+float(rail)*.85,15.47),
+                    vec3(1.90,.055,.065),vec3(.045,.055,.058),72.0,.25);
+        for(int bar=0;bar<7;++bar)
+            testBox(hit,rayOrigin,rayDirection,vec3(side*(.15+float(bar)*.59),1.22,15.47),
+                    vec3(.035,1.15,.055),vec3(.045,.055,.058),72.0,.25);
+        for(int rail=0;rail<2;++rail)
+            testBox(hit,rayOrigin,rayDirection,vec3(side*11.2,.65+float(rail)*.60,15.5),
+                    vec3(6.3,.055,.07),vec3(.35,.20,.075),16.0,.05);
+        for(int post=0;post<5;++post)
+        {
+            vec3 centre=vec3(side*(5.8+float(post)*2.8),1.0,15.5);
+            testBox(hit,rayOrigin,rayDirection,centre,vec3(.08,1.0,.08),vec3(.32,.18,.07),12.0,.03);
+            float oldT=hit.t;
+            testSphere(hit,rayOrigin,rayDirection,centre+vec3(0,1.05,0),.14,
+                       vec3(1.0,.78,.34),64.0,.0);
+            if(hit.t<oldT&&nightMode)hit.emission=vec3(3.8,2.6,1.0);
+        }
+    }
+    for(int light=0;light<NR_POINT_LIGHTS;++light)
+    {
+        float oldT=hit.t;
+        testSphere(hit,rayOrigin,rayDirection,pointLights[light].position,.16,
+                   vec3(1.0,.77,.32),64.0,0.0);
+        if(hit.t<oldT)hit.emission=pointLights[light].diffuse*3.0;
+    }
 
     // The metal water tank keeps the same rectangular proportions as the
     // raster scene and is reflective enough to demonstrate a secondary ray.
@@ -280,6 +332,34 @@ bool traceScene(vec3 rayOrigin, vec3 rayDirection,
     testSphere(hit, rayOrigin, rayDirection, vec3(15.0, 3.15, 10.5),
                1.55, vec3(0.10, 0.42, 0.08), 10.0, 0.02);
 
+    // Procedural brick and banner wood remove the featureless-block look
+    // without requiring the raster meshes to be duplicated in the ray pass.
+    if(hit.t<FAR_DISTANCE)
+    {
+        vec3 p=hit.position;
+        bool pillar=abs(abs(p.x)-4.3)<.58&&abs(p.z-15.5)<.58&&p.y<4.51;
+        if(pillar)
+        {
+            float row=floor(p.y/.23);
+            float brick=fract((abs(hit.normal.x)>.5?p.z:p.x)/.47+mod(row,2.0)*.5);
+            bool mortar=fract(p.y/.23)<.08||brick<.045;
+            hit.color=mortar?vec3(.36,.30,.24):vec3(.48,.18,.08)*(1.0+.07*sin(row*13.0));
+        }
+        if(abs(p.z-15.92)<.015&&abs(p.x)<4.85&&p.y>4.17&&p.y<5.27)
+        {
+            hit.color=vec3(.20,.085,.026)*(1.0+.15*sin(p.y*110.0+p.x*1.5));
+            vec2 pixel=vec2((p.x+3.9)/.10,(5.07-p.y)/.10);
+            int cell=int(floor(pixel.x/6.0));int column=int(mod(floor(pixel.x),6.0));
+            int row=int(floor(pixel.y));
+            const int letters[13]=int[13](0,1,2,7,0,3,4,5,7,6,0,4,1);
+            if(cell>=0&&cell<13&&column<5&&row>=0&&row<7)
+                if((signRow(letters[cell],row)&(1<<(4-column)))!=0)
+                {
+                    hit.color=vec3(.98,.74,.22);
+                    hit.emission=nightMode?vec3(.48,.29,.055):vec3(0);
+                }
+        }
+    }
     return hit.t < FAR_DISTANCE;
 }
 
