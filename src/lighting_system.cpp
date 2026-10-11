@@ -11,7 +11,11 @@ using namespace std;
 
 namespace
 {
-const glm::vec3 AfternoonSky(.73f,.70f,.62f);
+const glm::vec3 AfternoonSky(.78f,.76f,.72f);
+const glm::vec3 AfternoonSceneAmbient(.26f,.245f,.225f);
+const glm::vec3 AfternoonDirection(-.70f,-.80f,-.30f);
+const glm::vec3 AfternoonLightAmbient(.39f,.375f,.34f);
+const glm::vec3 AfternoonLightDiffuse(1.14f,1.08f,.98f);
 const glm::vec3 NightSky(.020f,.035f,.090f);
 const glm::vec3 NightPointAmbient(.085f,.065f,.040f);
 const glm::vec3 NightPointDiffuse(2.0f,1.55f,.95f);
@@ -115,13 +119,14 @@ void LightingSystem::setupShader(const Shader& shader, const glm::vec3& viewPosi
     shader.setBool("ambientEnabled", ambientEnabled_);
     shader.setBool("diffuseEnabled", diffuseEnabled_);
     shader.setBool("specularEnabled", specularEnabled_);
-    shader.setVec3("sceneAmbient",glm::mix(afternoonMode_?glm::vec3(.17f,.155f,.135f):glm::vec3(.21f,.22f,.19f),
+    // Afternoon stays readable, with a mild warm tint rather than night-level fill.
+    shader.setVec3("sceneAmbient",glm::mix(afternoonMode_?AfternoonSceneAmbient:glm::vec3(.21f,.22f,.19f),
                                           glm::vec3(.075f,.085f,.13f),nightBlend));
-    shader.setVec3("dirLight.direction",glm::normalize(glm::mix(afternoonMode_?glm::vec3(-.8f,-.32f,-.4f):
+    shader.setVec3("dirLight.direction",glm::normalize(glm::mix(afternoonMode_?AfternoonDirection:
         glm::vec3(-.38f,-1,-.28f),glm::vec3(-.38f,-1,-.28f),nightBlend)));
-    shader.setVec3("dirLight.ambient",glm::mix(afternoonMode_?glm::vec3(.28f,.24f,.19f):glm::vec3(.46f,.47f,.42f),
+    shader.setVec3("dirLight.ambient",glm::mix(afternoonMode_?AfternoonLightAmbient:glm::vec3(.46f,.47f,.42f),
                                              glm::vec3(.018f,.023f,.04f),nightBlend));
-    shader.setVec3("dirLight.diffuse",glm::mix(afternoonMode_?glm::vec3(.86f,.72f,.55f):glm::vec3(1.24f,1.20f,1.07f),
+    shader.setVec3("dirLight.diffuse",glm::mix(afternoonMode_?AfternoonLightDiffuse:glm::vec3(1.24f,1.20f,1.07f),
                                              glm::vec3(.075f,.095f,.17f),nightBlend));
     shader.setVec3("dirLight.specular",glm::mix(afternoonMode_?glm::vec3(.76f,.68f,.55f):glm::vec3(.72f,.72f,.66f),
                                               glm::vec3(.11f,.15f,.25f),nightBlend));

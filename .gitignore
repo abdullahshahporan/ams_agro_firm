@@ -20,6 +20,7 @@
 
 # Build output directories
 /report/
+/Documentation/
 Debug/
 Release/
 x64/

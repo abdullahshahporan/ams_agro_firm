@@ -7,6 +7,8 @@
 #include "wet_reflection_renderer.h"
 #include "collision_system.h"
 #include "lighting_system.h"
+#include "shared/rain_geometry.h"
+#include "rain_renderer.h"
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
@@ -453,13 +455,19 @@ public:
             if(time<RainInspectionStart)return mixPose({{-1.3f,2.1f,28.0f},{0,2.0f,15.5f},51},
                                                        {{1.4f,1.8f,23.5f},{0,2.3f,15.5f},49},
                                                        static_cast<float>((time-NightRainStart)/(RainInspectionStart-NightRainStart)));
-            if(time<32.0)
+            if(time<RainInspectionArrive)
             {
                 const Worker& worker=animals.workers()[0];
-                return {{1.0f,3.0f,8.0f},worker.position+glm::vec3(0,1.4f,0),54};
+                return {{1.0f,3.0f,8.0f},worker.position+glm::vec3(0,1.75f,0),50};
             }
-            return mixPose({{.7f,2.5f,13.0f},{4.6f,1.8f,7.2f},54},
-                           {{-.7f,2.7f,11.0f},{4.6f,1.8f,7.2f},54},static_cast<float>((time-32.0)/8.0));
+            {
+                // Clear frontal close-up: keep the whole canopy and boots in
+                // frame, away from the house roof and the gate masonry.
+                const glm::vec3 worker=animals.workers()[0].position;
+                return mixPose({worker+glm::vec3(-3.4f,2.8f,-4.2f),worker+glm::vec3(0,1.85f,0),46},
+                               {worker+glm::vec3(-3.0f,2.7f,-3.8f),worker+glm::vec3(0,1.85f,0),46},
+                               static_cast<float>((time-RainInspectionArrive)/(40.0-RainInspectionArrive)));
+            }
         default:
             if(time<8.0)return mixPose({{-18,18,28},{0,1,-1},52},{{-10,17,28},{0,1,-1},52},static_cast<float>(time/8.0));
             if(time<13.0)return {{-1.0f,4.0f,-.8f},{-10,1.8f,-8},49};
@@ -478,7 +486,7 @@ public:
         if(chapter==8)return 80+(time<3.8?0:(time<10.5?1:(time<18.0?2:3)));
         if(chapter==9)return 90+(time<3.0?0:1);
         if(chapter==5)return 50+(time<7.7?0:1);
-        if(chapter==10)return 100+(time<DuskTransitionEnd?0:(time<13.0?1:(time<NightRainStart?2:(time<RainInspectionStart?3:(time<32.0?4:5)))));
+        if(chapter==10)return 100+(time<DuskTransitionEnd?0:(time<13.0?1:(time<NightRainStart?2:(time<RainInspectionStart?3:(time<RainInspectionArrive?4:5)))));
         if(chapter==11)return 110+(time<8.0?0:(time<13.0?1:(time<17.0?2:3)));
         return static_cast<int>(chapter)*10;
     }
@@ -650,15 +658,7 @@ public:
         // every replay frame-identical, which is useful when recording video.
         if(tour.rainActive())
         {
-            for(int index=0;index<110;++index)
-            {
-                const float x=fmod(index*97.0f+static_cast<float>(tour.time)*61.0f,width+80.0f)-40.0f;
-                const float y=fmod(index*53.0f+static_cast<float>(tour.time)*335.0f,height+90.0f)-45.0f;
-                const float length=(13.0f+static_cast<float>(index%17))*s;
-                const float widthPixels=(1.0f+static_cast<float>(index%3)*.45f)*s;
-                quadrilateral({x,y},{x+widthPixels,y},{x-5.0f*s+widthPixels,y+length},
-                              {x-5.0f*s,y+length},glm::vec4(.66f,.82f,1.0f,.42f));
-            }
+            RainGeometry::append(vertices_,tour.time,width,height);
         }
         rectangle(margin,margin,panelWidth,100*s,panel);
         rectangle(margin,margin,4*s,100*s,gold);
@@ -756,7 +756,7 @@ void rasterView(const Shader& shader,const Tour& tour,const FarmScene& farm,cons
 void render(const Tour& tour,const Pose& pose,int width,int height,const Shader& phong,const Shader& gouraud,
             const FarmScene& farm,const EntityRenderer& entities,const CurvedRenderer& curves,
             const FarmTextures& textures,Overlay& overlay,const Controls& controls,
-            WetReflectionRenderer& wet)
+            WetReflectionRenderer& wet,RainRenderer& worldRain)
 {
     if(width<=0||height<=0)return;
     const glm::vec3 sky=tour.lighting.clearColor();glClearColor(sky.r,sky.g,sky.b,1);
@@ -789,6 +789,8 @@ void render(const Tour& tour,const Pose& pose,int width,int height,const Shader&
         glBindFramebuffer(GL_FRAMEBUFFER,wet.sceneFramebuffer());
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         rasterView(phong,tour,farm,entities,curves,textures,pose,0,0,width,height);
+        const Worker& worker=tour.animals.workers()[0];
+        worldRain.render(view,projection,pose.eye,tour.elapsed,worker.position,worker.holdingUmbrella);
         wet.compose(view,projection,reflectedView,pose.eye,static_cast<float>(tour.elapsed),
                     eased(static_cast<float>(tour.time-NightRainStart)));
     }
@@ -816,7 +818,7 @@ int runSimulation(bool smokeTest)
         Shader phong("shaders/texture.vs","shaders/texture.fs"),gouraud("shaders/gouraud.vs","shaders/gouraud.fs");
         TextureManager textures;CubeRenderer cubes;PrimitiveRenderer primitives;CurvedRenderer curves;
         FarmScene farm(cubes,primitives,textures.farm());EntityRenderer entities(cubes,primitives);
-        WetReflectionRenderer wet;
+        WetReflectionRenderer wet;RainRenderer worldRain;
         Overlay overlay;Tour tour;Controls controls;
         glfwSetWindowUserPointer(window,&controls);glfwSetKeyCallback(window,keyCallback);
         glEnable(GL_DEPTH_TEST);
@@ -865,7 +867,7 @@ int runSimulation(bool smokeTest)
             if(!smokeTest||renderedChapter!=tour.chapter||halfway||renderedWorker!=state||tour.complete)
             {
                 int width,height;glfwGetFramebufferSize(window,&width,&height);
-                render(tour,smoothed,width,height,phong,gouraud,farm,entities,curves,textures.farm(),overlay,controls,wet);
+                render(tour,smoothed,width,height,phong,gouraud,farm,entities,curves,textures.farm(),overlay,controls,wet,worldRain);
                 if(smokeTest)
                 {
                     glFinish();if(glGetError()!=GL_NO_ERROR)throw runtime_error("Guided simulation OpenGL error.");

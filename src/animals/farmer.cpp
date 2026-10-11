@@ -143,7 +143,19 @@ void EntityRenderer::drawWorker(const Shader& shader, const Worker& worker) cons
         applyMaterial(shader,Materials::metal());
         cubes_.drawColored(shader,root,glm::vec3(.34f,2.13f,.30f),glm::vec3(.045f,1.55f,.045f),glm::vec3(.28f));
         applyMaterial(shader,Materials::cloth());
-        primitives_.drawCone(shader,root,glm::vec3(.10f,2.97f,0),glm::vec3(2.20f,.42f,2.20f),glm::vec3(.12f,.33f,.39f));
+        primitives_.drawCone(shader,root,glm::vec3(.10f,2.97f,0),glm::vec3(2.20f,.42f,2.20f),glm::vec3(.30f,.68f,.76f));
+        // A light stitched rim separates the canopy from dark roofs in rain.
+        for(int edge=0;edge<24;++edge)
+        {
+            const float a=glm::two_pi<float>()*edge/24.0f;
+            const float b=glm::two_pi<float>()*(edge+1)/24.0f;
+            const glm::vec3 start(.10f+1.09f*cos(a),2.76f,1.09f*sin(a));
+            const glm::vec3 end(.10f+1.09f*cos(b),2.76f,1.09f*sin(b));
+            const glm::vec3 delta=end-start;
+            cubes_.drawColored(shader,root,(start+end)*.5f,
+                glm::vec3(glm::length(delta),.025f,.025f),glm::vec3(.78f,.86f,.83f),
+                glm::degrees(atan2(-delta.z,delta.x)),glm::vec3(0,1,0));
+        }
         primitives_.drawSphere(shader,root,glm::vec3(.10f,3.20f,0),glm::vec3(.08f),glm::vec3(.18f));
     }
 }
